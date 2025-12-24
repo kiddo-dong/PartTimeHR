@@ -1,32 +1,38 @@
-package com.example.PartTimeHR.employee.domain;
+package com.example.PartTimeHR.employee;
 
 import com.example.PartTimeHR.employer.domain.Employer;
+import com.example.PartTimeHR.employer.domain.Role;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
-// 고용자(직)
+// 직원
 @Entity
 @Table(name = "employee")
 @Getter
-@Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 public class Employee {
 
+    // PK
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
 
-    // 로그인용 아이디(중복 불가)
-    @Column(name = "login_id", nullable = false, unique = true, length = 50)
-    private String loginId;
+    // 로그인용 이메일 (중복 불가)
+    @Column(nullable = false, length = 100, unique = true)
+    private String email;
 
-    // 비밀번호
-    @Column(name = "password", nullable = false)
+    // 비밀번호 (암호화된 값만 저장)
+    @Column(nullable = false)
     private String password;
+
+    // 권한
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private Role role;
 
     // 직원 이름
     @Column(name = "employee_name", nullable = false, length = 30)
@@ -36,17 +42,22 @@ public class Employee {
     @Column(name = "employee_phone", nullable = false, length = 20)
     private String phone;
 
+    // 고용주 (사장님)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employer_id", nullable = false)
     private Employer employer;
 
     // 생성 시간
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     // 수정 시간
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /* =======================
+       생성 / 수정 시점 처리
+       ======================= */
 
     @PrePersist
     protected void onCreate() {

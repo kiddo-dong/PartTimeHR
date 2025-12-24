@@ -1,9 +1,19 @@
 package com.example.PartTimeHR.employee.dto;
 
-import lombok.Data;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@NoArgsConstructor
 public class EmployeeLoginRequest {
-    private String loginId;
+
+    @Email
+    @NotBlank
+    private String email;
+
+    @NotBlank
     private String password;
 }
+
