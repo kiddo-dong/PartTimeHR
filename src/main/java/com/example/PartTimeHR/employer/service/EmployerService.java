@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.employer.service;
 
-import com.example.PartTimeHR.employee.Employee;
+import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Role;

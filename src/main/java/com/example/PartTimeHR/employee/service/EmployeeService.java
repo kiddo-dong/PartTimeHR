@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.employee.service;
 
-import com.example.PartTimeHR.employee.Employee;
+import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
 import com.example.PartTimeHR.employee.dto.EmployeeLoginRequest;
 import com.example.PartTimeHR.employee.dto.EmployeeSignupRequest;

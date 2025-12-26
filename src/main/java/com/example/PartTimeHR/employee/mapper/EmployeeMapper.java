@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.employee.mapper;
 
-import com.example.PartTimeHR.employee.Employee;
+import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
 import com.example.PartTimeHR.employer.dto.EmployeeListResponse;
 import org.mapstruct.Mapper;

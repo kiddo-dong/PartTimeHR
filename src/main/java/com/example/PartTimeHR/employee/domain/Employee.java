@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.employee;
+package com.example.PartTimeHR.employee.domain;
 
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
