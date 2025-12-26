@@ -24,8 +24,13 @@ import java.util.List;
 public class WorkRecordService {
 
     private final WorkRecordRepository workRecordRepository;
+
+    // 직원 DB DI
     private final EmployeeRepository employeeRepository;
+
+    // 고용주 DB DI
     private final EmployerRepository employerRepository;
+    // Mapper
     private final WorkRecordMapper workRecordMapper;
 
     // ==================== 직원용 메서드 ====================
@@ -33,7 +38,7 @@ public class WorkRecordService {
     // 출근하기
     @Transactional
     public WorkRecordResponse clockIn(String employeeEmail) {
-        Employee employee = employeeRepository.findByEmail(employeeEmail)
+        Employee employee = employeeRepository.findByEmail(employeeEmail) // find
                 .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
 
         LocalDate today = LocalDate.now();

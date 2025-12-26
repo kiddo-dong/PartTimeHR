@@ -20,12 +20,14 @@ public class EmployerController {
 
     private final EmployerService employerService;
 
+    // 현재 로그인 한 사장님 정보 조회
     // 현재 로그인한 사용자 정보 조회 (인증 필요)
     @GetMapping("/me")
     public ResponseEntity<EmployerInfoResponse> getMyInfo() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
 
+        // jwt 인증 정보로 find
         EmployerInfoResponse response = employerService.getMyInfo(email);
 
         return ResponseEntity.ok(response);
@@ -46,6 +48,7 @@ public class EmployerController {
     @GetMapping("/profile")
     public ResponseEntity<ProfileResponse> getProfile() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         ProfileResponse response = ProfileResponse.builder()
                 .message("프로필 페이지입니다.")
                 .email(authentication.getName())
@@ -64,6 +67,7 @@ public class EmployerController {
         String employerEmail = authentication.getName();
 
         employerService.registerEmployee(employerEmail, request);
+
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
