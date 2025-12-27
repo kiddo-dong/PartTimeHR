@@ -4,9 +4,11 @@ import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
 import com.example.PartTimeHR.workrecord.domain.WorkStatus;
 import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
+import com.example.PartTimeHR.workrecord.dto.EmployeeClockInRequest;
 import com.example.PartTimeHR.workrecord.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.mapper.WorkRecordMapper;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -24,177 +27,11 @@ import java.util.List;
 public class WorkRecordService {
 
     private final WorkRecordRepository workRecordRepository;
-
-    // 직원 DB DI
     private final EmployeeRepository employeeRepository;
-
-    // 고용주 DB DI
     private final EmployerRepository employerRepository;
-    // Mapper
     private final WorkRecordMapper workRecordMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    // ==================== 직원용 메서드 ====================
-
-    // 출근하기
-    @Transactional
-    public WorkRecordResponse clockIn(String employeeEmail) {
-        Employee employee = employeeRepository.findByEmail(employeeEmail) // find
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-        LocalDate today = LocalDate.now();
-
-        // 중복 출근 체크
-        if (workRecordRepository.existsByEmployeeAndWorkDate(employee, today)) {
-            throw new IllegalArgumentException("오늘 이미 출근 기록이 있습니다.");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-
-        WorkRecord workRecord = WorkRecord.builder()
-                .employee(employee)
-                .workDate(today)
-                .clockInTime(now)
-                .status(WorkStatus.IN_PROGRESS)
-                .build();
-
-        workRecordRepository.save(workRecord);
-
-        return workRecordMapper.toResponse(workRecord);
-    }
-
-    // 휴게 시작
-    @Transactional
-    public WorkRecordResponse startBreak(Long recordId, String employeeEmail) {
-        Employee employee = employeeRepository.findByEmail(employeeEmail)
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-        WorkRecord workRecord = workRecordRepository.findById(recordId)
-                .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
-
-        // 자신의 기록인지 확인
-        if (!workRecord.getEmployee().getId().equals(employee.getId())) {
-            throw new IllegalArgumentException("자신의 출근 기록만 수정할 수 있습니다.");
-        }
-
-        // 오늘 기록인지 확인
-        if (!workRecord.getWorkDate().equals(LocalDate.now())) {
-            throw new IllegalArgumentException("오늘의 출근 기록만 수정할 수 있습니다.");
-        }
-
-        // 상태 확인
-        if (workRecord.getStatus() != WorkStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("근무 중일 때만 휴게를 시작할 수 있습니다.");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        workRecord.setBreakStartTime(now);
-        workRecord.setStatus(WorkStatus.ON_BREAK);
-
-        workRecordRepository.save(workRecord);
-
-        return workRecordMapper.toResponse(workRecord);
-    }
-
-    // 휴게 끝
-    @Transactional
-    public WorkRecordResponse endBreak(Long recordId, String employeeEmail) {
-        Employee employee = employeeRepository.findByEmail(employeeEmail)
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-        WorkRecord workRecord = workRecordRepository.findById(recordId)
-                .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
-
-        // 자신의 기록인지 확인
-        if (!workRecord.getEmployee().getId().equals(employee.getId())) {
-            throw new IllegalArgumentException("자신의 출근 기록만 수정할 수 있습니다.");
-        }
-
-        // 오늘 기록인지 확인
-        if (!workRecord.getWorkDate().equals(LocalDate.now())) {
-            throw new IllegalArgumentException("오늘의 출근 기록만 수정할 수 있습니다.");
-        }
-
-        // 상태 확인
-        if (workRecord.getStatus() != WorkStatus.ON_BREAK) {
-            throw new IllegalArgumentException("휴게 중일 때만 휴게를 종료할 수 있습니다.");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        workRecord.setBreakEndTime(now);
-        workRecord.setStatus(WorkStatus.IN_PROGRESS);
-
-        workRecordRepository.save(workRecord);
-
-        return workRecordMapper.toResponse(workRecord);
-    }
-
-    // 퇴근하기
-    @Transactional
-    public WorkRecordResponse clockOut(Long recordId, String employeeEmail) {
-        Employee employee = employeeRepository.findByEmail(employeeEmail)
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-        WorkRecord workRecord = workRecordRepository.findById(recordId)
-                .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
-
-        // 자신의 기록인지 확인
-        if (!workRecord.getEmployee().getId().equals(employee.getId())) {
-            throw new IllegalArgumentException("자신의 출근 기록만 수정할 수 있습니다.");
-        }
-
-        // 오늘 기록인지 확인
-        if (!workRecord.getWorkDate().equals(LocalDate.now())) {
-            throw new IllegalArgumentException("오늘의 출근 기록만 수정할 수 있습니다.");
-        }
-
-        // 상태 확인
-        if (workRecord.getStatus() == WorkStatus.COMPLETED) {
-            throw new IllegalArgumentException("이미 퇴근했습니다.");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        workRecord.setClockOutTime(now);
-        workRecord.setStatus(WorkStatus.COMPLETED);
-
-        workRecordRepository.save(workRecord);
-
-        return workRecordMapper.toResponse(workRecord);
-    }
-
-    // 내 기록 조회
-    @Transactional(readOnly = true)
-    public List<WorkRecordResponse> getMyRecords(String employeeEmail, LocalDate startDate, LocalDate endDate) {
-        Employee employee = employeeRepository.findByEmail(employeeEmail)
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-        List<WorkRecord> records;
-        if (startDate != null && endDate != null) {
-            records = workRecordRepository.findByEmployeeAndWorkDateBetween(employee, startDate, endDate);
-        } else {
-            records = workRecordRepository.findByEmployeeOrderByWorkDateDesc(employee);
-        }
-
-        return records.stream()
-                .map(workRecordMapper::toResponse)
-                .toList();
-    }
-
-    // 오늘 기록 조회
-    @Transactional(readOnly = true)
-    public WorkRecordResponse getTodayRecord(String employeeEmail) {
-        Employee employee = employeeRepository.findByEmail(employeeEmail)
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-        LocalDate today = LocalDate.now();
-        WorkRecord workRecord = workRecordRepository.findByEmployeeAndWorkDate(employee, today)
-                .orElse(null);
-
-        if (workRecord == null) {
-            return null;
-        }
-
-        return workRecordMapper.toResponse(workRecord);
-    }
 
     // ==================== 고용주용 메서드 ====================
 
@@ -212,10 +49,7 @@ public class WorkRecordService {
             throw new IllegalArgumentException("자신의 직원에게만 출근 기록을 등록할 수 있습니다.");
         }
 
-        // 중복 체크
-        if (workRecordRepository.existsByEmployeeAndWorkDate(employee, request.getWorkDate())) {
-            throw new IllegalArgumentException("해당 날짜에 이미 출근 기록이 있습니다.");
-        }
+        // 같은 날 여러 번 출근 가능하므로 중복 체크 제거
 
         // 시간 순서 검증
         validateTimeOrder(request.getClockInTime(), request.getBreakStartTime(),
@@ -412,6 +246,248 @@ public class WorkRecordService {
         } else {
             return WorkStatus.IN_PROGRESS;
         }
+    }
+
+    // ==================== 사장님 로그인 상태에서 직원 출근/퇴근 ====================
+
+    // 사장님 로그인 상태에서 직원 출근하기 (직원이 이메일/비밀번호 입력)
+    @Transactional
+    public WorkRecordResponse clockInByEmployer(String employerEmail, EmployeeClockInRequest request) {
+        // 사장님 확인
+        Employer employer = employerRepository.findByEmail(employerEmail)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+
+        // 직원 인증
+        Employee employee = employeeRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
+
+        // 자신의 직원인지 확인
+        if (!employee.getEmployer().getId().equals(employer.getId())) {
+            throw new IllegalArgumentException("자신의 직원만 출근할 수 있습니다.");
+        }
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 오늘의 출근 기록 확인 (아직 퇴근하지 않은 기록이 있는지 체크)
+        LocalDate today = LocalDate.now();
+        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+                employee, today, today
+        );
+
+        // 아직 퇴근하지 않은 기록이 있는지 확인 (실수로 두 번 출근 방지)
+        boolean hasIncompleteRecord = todayRecords.stream()
+                .anyMatch(record -> record.getStatus() != WorkStatus.COMPLETED);
+
+        if (hasIncompleteRecord) {
+            throw new IllegalArgumentException("오늘 아직 퇴근하지 않은 출근 기록이 있습니다. 먼저 퇴근해주세요.");
+        }
+
+        // 출근 기록 생성
+        LocalDateTime now = LocalDateTime.now();
+
+        WorkRecord workRecord = WorkRecord.builder()
+                .employee(employee)
+                .workDate(today)
+                .clockInTime(now)
+                .status(WorkStatus.IN_PROGRESS)
+                .build();
+
+        workRecordRepository.save(workRecord);
+
+        return workRecordMapper.toResponse(workRecord);
+    }
+
+    // 사장님 로그인 상태에서 직원 휴게 시작 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
+    @Transactional
+    public WorkRecordResponse startBreakByEmployer(String employerEmail, EmployeeClockInRequest request) {
+        // 사장님 확인
+        Employer employer = employerRepository.findByEmail(employerEmail)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+
+        // 직원 인증
+        Employee employee = employeeRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
+
+        // 자신의 직원인지 확인
+        if (!employee.getEmployer().getId().equals(employer.getId())) {
+            throw new IllegalArgumentException("자신의 직원만 수정할 수 있습니다.");
+        }
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 오늘의 가장 최근 기록 찾기
+        LocalDate today = LocalDate.now();
+        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+                employee, today, today
+        );
+
+        if (todayRecords.isEmpty()) {
+            throw new IllegalArgumentException("오늘 출근 기록이 없습니다. 먼저 출근해주세요.");
+        }
+
+        WorkRecord workRecord = todayRecords.stream()
+                .max(Comparator.comparing(WorkRecord::getClockInTime))
+                .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
+
+        // 상태 확인
+        if (workRecord.getStatus() != WorkStatus.IN_PROGRESS) {
+            throw new IllegalArgumentException("근무 중일 때만 휴게를 시작할 수 있습니다.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        workRecord.setBreakStartTime(now);
+        workRecord.setStatus(WorkStatus.ON_BREAK);
+
+        workRecordRepository.save(workRecord);
+
+        return workRecordMapper.toResponse(workRecord);
+    }
+
+    // 사장님 로그인 상태에서 직원 휴게 끝 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
+    @Transactional
+    public WorkRecordResponse endBreakByEmployer(String employerEmail, EmployeeClockInRequest request) {
+        // 사장님 확인
+        Employer employer = employerRepository.findByEmail(employerEmail)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+
+        // 직원 인증
+        Employee employee = employeeRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
+
+        // 자신의 직원인지 확인
+        if (!employee.getEmployer().getId().equals(employer.getId())) {
+            throw new IllegalArgumentException("자신의 직원만 수정할 수 있습니다.");
+        }
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 오늘의 가장 최근 기록 찾기
+        LocalDate today = LocalDate.now();
+        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+                employee, today, today
+        );
+
+        if (todayRecords.isEmpty()) {
+            throw new IllegalArgumentException("오늘 출근 기록이 없습니다. 먼저 출근해주세요.");
+        }
+
+        WorkRecord workRecord = todayRecords.stream()
+                .max(Comparator.comparing(WorkRecord::getClockInTime))
+                .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
+
+        // 상태 확인
+        if (workRecord.getStatus() != WorkStatus.ON_BREAK) {
+            throw new IllegalArgumentException("휴게 중일 때만 휴게를 종료할 수 있습니다.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        workRecord.setBreakEndTime(now);
+        workRecord.setStatus(WorkStatus.IN_PROGRESS);
+
+        workRecordRepository.save(workRecord);
+
+        return workRecordMapper.toResponse(workRecord);
+    }
+
+    // 사장님 로그인 상태에서 직원 퇴근하기 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
+    @Transactional
+    public WorkRecordResponse clockOutByEmployer(String employerEmail, EmployeeClockInRequest request) {
+        // 사장님 확인
+        Employer employer = employerRepository.findByEmail(employerEmail)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+
+        // 직원 인증
+        Employee employee = employeeRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
+
+        // 자신의 직원인지 확인
+        if (!employee.getEmployer().getId().equals(employer.getId())) {
+            throw new IllegalArgumentException("자신의 직원만 수정할 수 있습니다.");
+        }
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 오늘의 가장 최근 기록 찾기
+        LocalDate today = LocalDate.now();
+        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+                employee, today, today
+        );
+
+        if (todayRecords.isEmpty()) {
+            throw new IllegalArgumentException("오늘 출근 기록이 없습니다. 먼저 출근해주세요.");
+        }
+
+        WorkRecord workRecord = todayRecords.stream()
+                .max(Comparator.comparing(WorkRecord::getClockInTime))
+                .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
+
+        // 상태 확인
+        if (workRecord.getStatus() == WorkStatus.COMPLETED) {
+            throw new IllegalArgumentException("이미 퇴근했습니다.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        workRecord.setClockOutTime(now);
+        workRecord.setStatus(WorkStatus.COMPLETED);
+
+        workRecordRepository.save(workRecord);
+
+        return workRecordMapper.toResponse(workRecord);
+    }
+
+    // 사장님 로그인 상태에서 직원의 오늘 가장 최근 기록 조회
+    @Transactional(readOnly = true)
+    public WorkRecordResponse getTodayRecordByEmployer(String employerEmail, EmployeeClockInRequest request) {
+        // 사장님 확인
+        Employer employer = employerRepository.findByEmail(employerEmail)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+
+        // 직원 인증
+        Employee employee = employeeRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
+
+        // 자신의 직원인지 확인
+        if (!employee.getEmployer().getId().equals(employer.getId())) {
+            throw new IllegalArgumentException("자신의 직원만 조회할 수 있습니다.");
+        }
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 오늘의 가장 최근 기록 조회
+        LocalDate today = LocalDate.now();
+        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+                employee, today, today
+        );
+
+        if (todayRecords.isEmpty()) {
+            return null;
+        }
+
+        // 가장 최근 출근 기록 반환 (clockInTime 기준)
+        WorkRecord latestRecord = todayRecords.stream()
+                .max(Comparator.comparing(WorkRecord::getClockInTime))
+                .orElse(null);
+
+        if (latestRecord == null) {
+            return null;
+        }
+
+        return workRecordMapper.toResponse(latestRecord);
     }
 }
 

@@ -6,6 +6,7 @@ import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.dto.*;
+import com.example.PartTimeHR.employer.dto.UpdateEmployerRequest;
 import com.example.PartTimeHR.employer.mapper.EmployerMapper;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
 import com.example.PartTimeHR.global.jwt.JwtTokenProvider;
@@ -48,6 +49,7 @@ public class EmployerService {
                 .name(request.getName())
                 .phone(request.getPhone())
                 .storeName(request.getStoreName())
+                .weekStartDay(1)  // 기본값: 월요일
                 .role(Role.ROLE_EMPLOYER)
                 .build();
 
@@ -125,6 +127,61 @@ public class EmployerService {
         return employees.stream()
                 .map(employeeMapper::toListResponse)
                 .toList();
+    }
+
+    // 사장님 정보 수정
+    @Transactional
+    public EmployerInfoResponse updateEmployer(String email, UpdateEmployerRequest request) {
+        Employer employer = employerRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+
+        // 이름 수정
+        if (request.getName() != null && !request.getName().isBlank()) {
+            employer.setName(request.getName());
+        }
+
+        // 전화번호 수정
+        if (request.getPhone() != null && !request.getPhone().isBlank()) {
+            employer.setPhone(request.getPhone());
+        }
+
+        // 가게 이름 수정
+        if (request.getStoreName() != null && !request.getStoreName().isBlank()) {
+            employer.setStoreName(request.getStoreName());
+        }
+
+        // 주간 시작 요일 수정
+        if (request.getWeekStartDay() != null) {
+            if (request.getWeekStartDay() < 1 || request.getWeekStartDay() > 7) {
+                throw new IllegalArgumentException("주간 시작 요일은 1(월요일)부터 7(일요일)까지입니다.");
+            }
+            employer.setWeekStartDay(request.getWeekStartDay());
+        }
+
+        // 비밀번호 수정
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            // 현재 비밀번호 확인
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
+                throw new IllegalArgumentException("비밀번호를 변경하려면 현재 비밀번호를 입력해주세요.");
+            }
+
+            // 현재 비밀번호 검증
+            if (!passwordEncoder.matches(request.getCurrentPassword(), employer.getPassword())) {
+                throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+            }
+
+            // 새 비밀번호 확인
+            if (!request.getPassword().equals(request.getPasswordConfirm())) {
+                throw new IllegalArgumentException("새 비밀번호가 일치하지 않습니다.");
+            }
+
+            // 비밀번호 변경
+            employer.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        employerRepository.save(employer);
+
+        return employerMapper.toInfoResponse(employer);
     }
 
 }

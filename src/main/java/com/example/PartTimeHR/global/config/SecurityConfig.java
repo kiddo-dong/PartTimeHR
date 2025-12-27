@@ -38,8 +38,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/employers/signup",
                                 "/api/employers/login",
-                                "/api/employees/signup",
-                                "/api/employees/login"
+                                "/api/employees/login"  // 직원 회원가입 제거, 로그인만 허용
                         ).permitAll()
                         // 역할 기반 접근 제어
                         .requestMatchers("/api/employers/dashboard").hasRole("EMPLOYER")

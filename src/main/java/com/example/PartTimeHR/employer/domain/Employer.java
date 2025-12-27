@@ -22,6 +22,27 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class Employer {
+    
+    // 수정 가능한 필드에 대한 setter
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+    
+    public void setStoreName(String storeName) {
+        this.storeName = storeName;
+    }
+    
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    
+    public void setWeekStartDay(Integer weekStartDay) {
+        this.weekStartDay = weekStartDay;
+    }
 
     // PK
     @Id
@@ -52,6 +73,10 @@ public class Employer {
     // 가게 이름
     @Column(name = "store_name", nullable = false, length = 50)
     private String storeName;
+
+    // 주간 시작 요일 (1=월요일, 2=화요일, ..., 7=일요일)
+    @Column(name = "week_start_day", nullable = false)
+    private Integer weekStartDay = 1;  // 기본값: 월요일
 
     // 직원들
     // @OneToMany(mappedBy = "employer", fetch = FetchType.LAZY)

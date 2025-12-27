@@ -15,6 +15,19 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class Employee {
+    
+    // 수정 가능한 필드에 대한 setter
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+    
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
     // PK
     @Id

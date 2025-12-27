@@ -34,12 +34,13 @@ public class EmployerController {
     }
 
     // 사장님만 접근 가능한 엔드포인트 (인가 필요)
+    // 실제 통계는 GET /api/employers/statistics/dashboard 사용
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('EMPLOYER')")
     public ResponseEntity<DashboardResponse> getDashboard() {
         DashboardResponse response = DashboardResponse.builder()
                 .message("사장님 대시보드에 오신 것을 환영합니다!")
-                .description("이 엔드포인트는 ROLE_EMPLOYER 권한이 있는 사용자만 접근할 수 있습니다.")
+                .description("실제 통계는 GET /api/employers/statistics/dashboard를 사용하세요.")
                 .build();
         return ResponseEntity.ok(response);
     }
@@ -80,6 +81,18 @@ public class EmployerController {
 
         List<EmployeeListResponse> response = employerService.getMyEmployees(employerEmail);
 
+        return ResponseEntity.ok(response);
+    }
+
+    // 사장님 정보 수정
+    @PutMapping("/me")
+    public ResponseEntity<EmployerInfoResponse> updateEmployer(
+            @Valid @RequestBody UpdateEmployerRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+
+        EmployerInfoResponse response = employerService.updateEmployer(email, request);
         return ResponseEntity.ok(response);
     }
 }

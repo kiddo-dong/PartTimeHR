@@ -1,6 +1,7 @@
 package com.example.PartTimeHR.workrecord.controller;
 
 import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
+import com.example.PartTimeHR.workrecord.dto.EmployeeClockInRequest;
 import com.example.PartTimeHR.workrecord.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.service.WorkRecordService;
@@ -81,6 +82,71 @@ public class EmployerWorkRecordController {
         String email = authentication.getName();
 
         WorkRecordResponse response = workRecordService.getWorkRecord(recordId, email);
+        return ResponseEntity.ok(response);
+    }
+
+    // ==================== 사장님 로그인 상태에서 직원 출근/퇴근 ====================
+
+    // 직원 출근하기 (직원이 이메일/비밀번호 입력)
+    @PostMapping("/clock-in")
+    public ResponseEntity<WorkRecordResponse> clockInByEmployer(
+            @Valid @RequestBody EmployeeClockInRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String employerEmail = authentication.getName();
+
+        WorkRecordResponse response = workRecordService.clockInByEmployer(employerEmail, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // 직원 휴게 시작 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
+    @PostMapping("/break-start")
+    public ResponseEntity<WorkRecordResponse> startBreakByEmployer(
+            @Valid @RequestBody EmployeeClockInRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String employerEmail = authentication.getName();
+
+        WorkRecordResponse response = workRecordService.startBreakByEmployer(employerEmail, request);
+        return ResponseEntity.ok(response);
+    }
+
+    // 직원 휴게 끝 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
+    @PostMapping("/break-end")
+    public ResponseEntity<WorkRecordResponse> endBreakByEmployer(
+            @Valid @RequestBody EmployeeClockInRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String employerEmail = authentication.getName();
+
+        WorkRecordResponse response = workRecordService.endBreakByEmployer(employerEmail, request);
+        return ResponseEntity.ok(response);
+    }
+
+    // 직원 퇴근하기 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
+    @PostMapping("/clock-out")
+    public ResponseEntity<WorkRecordResponse> clockOutByEmployer(
+            @Valid @RequestBody EmployeeClockInRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String employerEmail = authentication.getName();
+
+        WorkRecordResponse response = workRecordService.clockOutByEmployer(employerEmail, request);
+        return ResponseEntity.ok(response);
+    }
+
+    // 직원의 오늘 기록 조회
+    @PostMapping("/today")
+    public ResponseEntity<WorkRecordResponse> getTodayRecordByEmployer(
+            @Valid @RequestBody EmployeeClockInRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String employerEmail = authentication.getName();
+
+        WorkRecordResponse response = workRecordService.getTodayRecordByEmployer(employerEmail, request);
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
         return ResponseEntity.ok(response);
     }
 }
