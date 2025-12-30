@@ -37,8 +37,8 @@ public class WorkRecordService {
 
     // 수동 등록
     @Transactional
-    public WorkRecordResponse createWorkRecord(String employerEmail, CreateWorkRecordRequest request) {
-        Employer employer = employerRepository.findByEmail(employerEmail)
+    public WorkRecordResponse createWorkRecord(String email, CreateWorkRecordRequest request) {
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         Employee employee = employeeRepository.findById(request.getEmployeeId())
@@ -76,8 +76,8 @@ public class WorkRecordService {
 
     // 수정
     @Transactional
-    public WorkRecordResponse updateWorkRecord(Long recordId, String employerEmail, UpdateWorkRecordRequest request) {
-        Employer employer = employerRepository.findByEmail(employerEmail)
+    public WorkRecordResponse updateWorkRecord(Long recordId, String email, UpdateWorkRecordRequest request) {
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         WorkRecord workRecord = workRecordRepository.findById(recordId)
@@ -128,8 +128,8 @@ public class WorkRecordService {
 
     // 삭제
     @Transactional
-    public void deleteWorkRecord(Long recordId, String employerEmail) {
-        Employer employer = employerRepository.findByEmail(employerEmail)
+    public void deleteWorkRecord(Long recordId, String email) {
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         WorkRecord workRecord = workRecordRepository.findById(recordId)
@@ -145,8 +145,8 @@ public class WorkRecordService {
 
     // 전체 조회
     @Transactional(readOnly = true)
-    public List<WorkRecordResponse> getAllRecords(String employerEmail, Long employeeId, LocalDate startDate, LocalDate endDate) {
-        Employer employer = employerRepository.findByEmail(employerEmail)
+    public List<WorkRecordResponse> getAllRecords(String email, Long employeeId, LocalDate startDate, LocalDate endDate) {
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         List<WorkRecord> records;
@@ -188,8 +188,8 @@ public class WorkRecordService {
 
     // 특정 기록 조회
     @Transactional(readOnly = true)
-    public WorkRecordResponse getWorkRecord(Long recordId, String employerEmail) {
-        Employer employer = employerRepository.findByEmail(employerEmail)
+    public WorkRecordResponse getWorkRecord(Long recordId, String email) {
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         WorkRecord workRecord = workRecordRepository.findById(recordId)
@@ -252,9 +252,9 @@ public class WorkRecordService {
 
     // 사장님 로그인 상태에서 직원 출근하기 (직원이 이메일/비밀번호 입력)
     @Transactional
-    public WorkRecordResponse clockInByEmployer(String employerEmail, EmployeeClockInRequest request) {
+    public WorkRecordResponse clockInByEmployer(String email, EmployeeClockInRequest request) {
         // 사장님 확인
-        Employer employer = employerRepository.findByEmail(employerEmail)
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         // 직원 인증
@@ -302,9 +302,9 @@ public class WorkRecordService {
 
     // 사장님 로그인 상태에서 직원 휴게 시작 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
     @Transactional
-    public WorkRecordResponse startBreakByEmployer(String employerEmail, EmployeeClockInRequest request) {
+    public WorkRecordResponse startBreakByEmployer(String email, EmployeeClockInRequest request) {
         // 사장님 확인
-        Employer employer = employerRepository.findByEmail(employerEmail)
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         // 직원 인증
@@ -351,9 +351,9 @@ public class WorkRecordService {
 
     // 사장님 로그인 상태에서 직원 휴게 끝 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
     @Transactional
-    public WorkRecordResponse endBreakByEmployer(String employerEmail, EmployeeClockInRequest request) {
+    public WorkRecordResponse endBreakByEmployer(String email, EmployeeClockInRequest request) {
         // 사장님 확인
-        Employer employer = employerRepository.findByEmail(employerEmail)
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         // 직원 인증
@@ -400,9 +400,9 @@ public class WorkRecordService {
 
     // 사장님 로그인 상태에서 직원 퇴근하기 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
     @Transactional
-    public WorkRecordResponse clockOutByEmployer(String employerEmail, EmployeeClockInRequest request) {
+    public WorkRecordResponse clockOutByEmployer(String email, EmployeeClockInRequest request) {
         // 사장님 확인
-        Employer employer = employerRepository.findByEmail(employerEmail)
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         // 직원 인증
@@ -449,9 +449,9 @@ public class WorkRecordService {
 
     // 사장님 로그인 상태에서 직원의 오늘 가장 최근 기록 조회
     @Transactional(readOnly = true)
-    public WorkRecordResponse getTodayRecordByEmployer(String employerEmail, EmployeeClockInRequest request) {
+    public WorkRecordResponse getTodayRecordByEmployer(String email, EmployeeClockInRequest request) {
         // 사장님 확인
-        Employer employer = employerRepository.findByEmail(employerEmail)
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         // 직원 인증

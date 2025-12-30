@@ -78,9 +78,9 @@ public class EmployerService {
 
     // 사장님이 직원 등록
     @Transactional
-    public void registerEmployee(String employerEmail, RegisterEmployeeRequest request) {
+    public void registerEmployee(String email, RegisterEmployeeRequest request) {
         // 사장님 조회
-        Employer employer = employerRepository.findByEmail(employerEmail)
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         // 이메일 중복 검사
@@ -118,8 +118,8 @@ public class EmployerService {
 
     // 사장님의 직원 목록 조회
     @Transactional(readOnly = true)
-    public List<EmployeeListResponse> getMyEmployees(String employerEmail) {
-        Employer employer = employerRepository.findByEmail(employerEmail)
+    public List<EmployeeListResponse> getMyEmployees(String email) {
+        Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         List<Employee> employees = employeeRepository.findByEmployer(employer);
