@@ -4,6 +4,7 @@ import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
 import com.example.PartTimeHR.employee.dto.EmployeeLoginRequest;
 import com.example.PartTimeHR.employee.dto.UpdateEmployeeRequest;
 import com.example.PartTimeHR.employee.service.EmployeeService;
+import com.example.PartTimeHR.global.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,23 +19,13 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
-    // 직원 회원가입은 제거됨 - 사장님이 직원을 등록하는 방식만 사용
-
-    @PostMapping("/login")
-    public ResponseEntity<String> login(
-            @Valid @RequestBody EmployeeLoginRequest request
-    ) {
-        String token = employeeService.login(request);
-        return ResponseEntity.ok(token);
-    }
-
     // 현재 로그인한 직원 정보 조회 (인증 필요)
     @GetMapping("/me")
     public ResponseEntity<EmployeeInfoResponse> getMyInfo(
-            @AuthenticationPrincipal String email
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
 
-        EmployeeInfoResponse response = employeeService.getMyInfo(email);
+        EmployeeInfoResponse response = employeeService.getMyInfo(userDetails.getEmail());
 
         return ResponseEntity.ok(response);
     }
@@ -43,10 +34,10 @@ public class EmployeeController {
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<EmployeeInfoResponse> getDashboard(
-            @AuthenticationPrincipal String email
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
 
-        EmployeeInfoResponse response = employeeService.getMyInfo(email);
+        EmployeeInfoResponse response = employeeService.getMyInfo(userDetails.getEmail());
 
         return ResponseEntity.ok(response);
     }
@@ -54,11 +45,11 @@ public class EmployeeController {
     // 직원 정보 수정
     @PutMapping("/me")
     public ResponseEntity<EmployeeInfoResponse> updateEmployee(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UpdateEmployeeRequest request
     ) {
 
-        EmployeeInfoResponse response = employeeService.updateEmployee(email, request);
+        EmployeeInfoResponse response = employeeService.updateEmployee(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 

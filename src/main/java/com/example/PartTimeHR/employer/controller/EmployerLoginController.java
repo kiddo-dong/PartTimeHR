@@ -19,14 +19,6 @@ public class EmployerLoginController {
 
     private final EmployerService employerService;
 
-    @PostMapping("/login")
-    public ResponseEntity<String> login(
-            @Valid @RequestBody EmployerLoginRequest request
-    ) {
-        String token = employerService.login(request);
-        return ResponseEntity.ok(token);
-    }
-
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(
             @Valid @RequestBody EmployerSignupRequest request

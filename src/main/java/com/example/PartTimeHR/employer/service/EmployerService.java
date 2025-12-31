@@ -9,7 +9,7 @@ import com.example.PartTimeHR.employer.dto.*;
 import com.example.PartTimeHR.employer.dto.UpdateEmployerRequest;
 import com.example.PartTimeHR.employer.mapper.EmployerMapper;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
-import com.example.PartTimeHR.global.jwt.JwtTokenProvider;
+import com.example.PartTimeHR.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,7 @@ public class EmployerService {
     private final EmployerRepository employerRepository;
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtProvider jwtProvider;
     private final EmployerMapper employerMapper;
     private final EmployeeMapper employeeMapper;
 
@@ -55,25 +55,6 @@ public class EmployerService {
 
         // 저장
         employerRepository.save(employer);
-    }
-
-    // login logic
-    @Transactional(readOnly = true)
-    public String login(EmployerLoginRequest request) {
-
-        Employer employer = employerRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자"));
-
-        // 비밀번호 검증
-        if (!passwordEncoder.matches(request.getPassword(), employer.getPassword())) {
-            throw new IllegalArgumentException("비밀번호 불일치");
-        }
-
-        // JWT 발급
-        return jwtTokenProvider.createToken(
-                employer.getEmail(),
-                employer.getRole().name()
-        );
     }
 
     // 사장님이 직원 등록

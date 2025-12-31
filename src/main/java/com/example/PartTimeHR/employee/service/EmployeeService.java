@@ -6,10 +6,8 @@ import com.example.PartTimeHR.employee.dto.EmployeeLoginRequest;
 import com.example.PartTimeHR.employee.dto.UpdateEmployeeRequest;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
-import com.example.PartTimeHR.employer.domain.Employer;
-import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
-import com.example.PartTimeHR.global.jwt.JwtTokenProvider;
+import com.example.PartTimeHR.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,30 +20,8 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final EmployerRepository employerRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtProvider jwtProvider;
     private final EmployeeMapper employeeMapper;
-
-    // 직원 회원가입은 제거됨 - 사장님이 POST /api/employers/employees로 직원을 등록
-    // 이 메서드는 더 이상 사용되지 않음
-
-    // login logic
-    @Transactional(readOnly = true)
-    public String login(EmployeeLoginRequest request) {
-
-        Employee employee = employeeRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자"));
-
-        // 비밀번호 검증
-        if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
-            throw new IllegalArgumentException("비밀번호 불일치");
-        }
-
-        // JWT 발급
-        return jwtTokenProvider.createToken(
-                employee.getEmail(),
-                employee.getRole().name()
-        );
-    }
 
     // 현재 로그인한 직원 정보 조회
     @Transactional(readOnly = true)

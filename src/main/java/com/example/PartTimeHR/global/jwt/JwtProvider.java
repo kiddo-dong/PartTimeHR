@@ -11,14 +11,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
-public class JwtTokenProvider {
+public class JwtProvider {
 
     // DI
     private final SecretKey secretKey;
     private final long expiration;
 
     // 생성자
-    public JwtTokenProvider(
+    public JwtProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration}") long expiration
     ) {
@@ -27,7 +27,7 @@ public class JwtTokenProvider {
     }
 
     // 토큰 생성
-    public String createToken(String email, String role) {
+    public String createAccessToken(String email, String role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expiration);
 

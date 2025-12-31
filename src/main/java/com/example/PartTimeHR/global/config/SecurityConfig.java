@@ -1,13 +1,19 @@
 package com.example.PartTimeHR.global.config;
 
+import com.example.PartTimeHR.global.handler.LoginFailureHandler;
+import com.example.PartTimeHR.global.handler.LoginSuccessHandler;
 import com.example.PartTimeHR.global.jwt.JwtAuthenticationFilter;
+import com.example.PartTimeHR.global.security.CustomUserDetails;
+import com.example.PartTimeHR.global.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,7 +25,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final CustomUserDetailsService userDetailsService; // 추가
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final LoginSuccessHandler loginSuccessHandler;
+    private final LoginFailureHandler loginFailureHandler;
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -31,21 +41,22 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                // 세션은 formLogin용으로 허용
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/employers/signup",
-                                "/api/employers/login",
-                                "/api/employees/login"  // 직원 회원가입 제거, 로그인만 허용
-                        ).permitAll()
-                        // 역할 기반 접근 제어
+                        .requestMatchers("/api/employers/signup", "/api/login").permitAll()
                         .requestMatchers("/api/employers/dashboard").hasRole("EMPLOYER")
                         .requestMatchers("/api/employees/dashboard").hasRole("EMPLOYEE")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .formLogin(form -> form
+                        .loginProcessingUrl("/api/login")
+                        .usernameParameter("email")
+                        .passwordParameter("password")
+                        .successHandler(loginSuccessHandler)
+                        .failureHandler(loginFailureHandler)
+                )
+                .addFilterBefore(jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

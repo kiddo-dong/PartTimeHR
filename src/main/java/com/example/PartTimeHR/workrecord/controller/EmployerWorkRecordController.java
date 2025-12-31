@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.workrecord.controller;
 
+import com.example.PartTimeHR.global.security.CustomUserDetails;
 import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.EmployeeClockInRequest;
 import com.example.PartTimeHR.workrecord.dto.UpdateWorkRecordRequest;
@@ -30,57 +31,57 @@ public class EmployerWorkRecordController {
     // 수동 등록
     @PostMapping
     public ResponseEntity<WorkRecordResponse> createWorkRecord(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateWorkRecordRequest request
     ) {
 
-        WorkRecordResponse response = workRecordService.createWorkRecord(email, request);
+        WorkRecordResponse response = workRecordService.createWorkRecord(userDetails.getEmail(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // 수정
     @PutMapping("/{recordId}")
     public ResponseEntity<WorkRecordResponse> updateWorkRecord(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long recordId,
             @Valid @RequestBody UpdateWorkRecordRequest request
     ) {
-        WorkRecordResponse response = workRecordService.updateWorkRecord(recordId, email, request);
+        WorkRecordResponse response = workRecordService.updateWorkRecord(recordId, userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 
     // 삭제
     @DeleteMapping("/{recordId}")
     public ResponseEntity<Void> deleteWorkRecord(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long recordId
     ){
 
-        workRecordService.deleteWorkRecord(recordId, email);
+        workRecordService.deleteWorkRecord(recordId, userDetails.getEmail());
         return ResponseEntity.noContent().build();
     }
 
     // 전체 조회
     @GetMapping
     public ResponseEntity<List<WorkRecordResponse>> getAllRecords(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
 
-        List<WorkRecordResponse> response = workRecordService.getAllRecords(email, employeeId, startDate, endDate);
+        List<WorkRecordResponse> response = workRecordService.getAllRecords(userDetails.getEmail(), employeeId, startDate, endDate);
         return ResponseEntity.ok(response);
     }
 
     // 특정 기록 조회
     @GetMapping("/{recordId}")
     public ResponseEntity<WorkRecordResponse> getWorkRecord(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long recordId
     ) {
 
-        WorkRecordResponse response = workRecordService.getWorkRecord(recordId, email);
+        WorkRecordResponse response = workRecordService.getWorkRecord(recordId, userDetails.getEmail());
         return ResponseEntity.ok(response);
     }
 
@@ -89,54 +90,54 @@ public class EmployerWorkRecordController {
     // 직원 출근하기 (직원이 이메일/비밀번호 입력)
     @PostMapping("/clock-in")
     public ResponseEntity<WorkRecordResponse> clockInByEmployer(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
 
-        WorkRecordResponse response = workRecordService.clockInByEmployer(email, request);
+        WorkRecordResponse response = workRecordService.clockInByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // 직원 휴게 시작 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
     @PostMapping("/break-start")
     public ResponseEntity<WorkRecordResponse> startBreakByEmployer(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
 
-        WorkRecordResponse response = workRecordService.startBreakByEmployer(email, request);
+        WorkRecordResponse response = workRecordService.startBreakByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 
     // 직원 휴게 끝 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
     @PostMapping("/break-end")
     public ResponseEntity<WorkRecordResponse> endBreakByEmployer(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
 
-        WorkRecordResponse response = workRecordService.endBreakByEmployer(email, request);
+        WorkRecordResponse response = workRecordService.endBreakByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 
     // 직원 퇴근하기 (record_id 없이 자동으로 오늘의 가장 최근 기록 찾기)
     @PostMapping("/clock-out")
     public ResponseEntity<WorkRecordResponse> clockOutByEmployer(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
 
-        WorkRecordResponse response = workRecordService.clockOutByEmployer(email, request);
+        WorkRecordResponse response = workRecordService.clockOutByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 
     // 직원의 오늘 기록 조회
     @PostMapping("/today")
     public ResponseEntity<WorkRecordResponse> getTodayRecordByEmployer(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
-        WorkRecordResponse response = workRecordService.getTodayRecordByEmployer(email, request);
+        WorkRecordResponse response = workRecordService.getTodayRecordByEmployer(userDetails.getEmail(), request);
         if (response == null) {
             return ResponseEntity.noContent().build();
         }
