@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtProvider jwtProvider;
-    private final Logger logger = Logger.getLogger(LoginSuccessHandler.class.getName());
+    // private final Logger logger = Logger.getLogger(LoginSuccessHandler.class.getName());
 
     public LoginSuccessHandler(JwtProvider jwtProvider) {
         this.jwtProvider = jwtProvider;
@@ -34,7 +34,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         String role = userDetails.getRole().name(); // Enum -> String
 
         // SessionId Log
-        logger.info("Session_Id : " + request.getSession().getId());
+        // logger.info("Session_Id : " + request.getSession().getId());
 
         String accessToken = jwtProvider.createAccessToken(email, role);
 
@@ -42,7 +42,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         request.getSession().invalidate();
 
         // jwt Log
-        logger.info("Access token: " + accessToken);
+        // logger.info("Access token: " + accessToken);
 
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
