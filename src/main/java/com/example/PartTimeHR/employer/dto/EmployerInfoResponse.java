@@ -19,5 +19,6 @@ public class EmployerInfoResponse {
     private String storeName;
     private String role;
     private LocalDateTime createdAt;
+    private Integer weekStartDay;
 }
 

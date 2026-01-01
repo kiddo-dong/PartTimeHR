@@ -66,9 +66,7 @@ public class EmployerController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UpdateEmployerRequest request
     ) {
-
         EmployerInfoResponse response = employerService.updateEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 }
-

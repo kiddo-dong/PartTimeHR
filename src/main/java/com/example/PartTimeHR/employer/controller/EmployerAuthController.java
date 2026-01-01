@@ -1,29 +1,35 @@
 package com.example.PartTimeHR.employer.controller;
 
-import com.example.PartTimeHR.employer.dto.EmployerLoginRequest;
 import com.example.PartTimeHR.employer.dto.EmployerSignupRequest;
-import com.example.PartTimeHR.employer.service.EmployerService;
+import com.example.PartTimeHR.employer.dto.PasswordResetRequest;
+import com.example.PartTimeHR.employer.service.EmployerAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/employers")
-public class EmployerLoginController {
+public class EmployerAuthController {
 
-    private final EmployerService employerService;
+    private final EmployerAuthService employerAuthService;
 
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(
             @Valid @RequestBody EmployerSignupRequest request
-    ) {
-        employerService.signup(request);
+    ){
+        employerAuthService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    /*
+    @GetMapping("/password/reset-request")
+    public ResponseEntity<String> findPassword(
+        @Valid @RequestBody PasswordResetRequest request
+    ){
+
+    }
+    */
 }

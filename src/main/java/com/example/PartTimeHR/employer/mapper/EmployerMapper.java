@@ -9,8 +9,6 @@ import org.mapstruct.factory.Mappers;
 @Mapper(componentModel = "spring")
 public interface EmployerMapper {
 
-    EmployerMapper INSTANCE = Mappers.getMapper(EmployerMapper.class);
-
     @Mapping(target = "role", expression = "java(employer.getRole().name())")
     EmployerInfoResponse toInfoResponse(Employer employer);
 }
