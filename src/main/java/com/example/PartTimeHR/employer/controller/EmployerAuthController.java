@@ -34,6 +34,7 @@ public class EmployerAuthController {
         return ResponseEntity.ok("메일 발송 완료");
     }
 
+    // 비밀번호 리셋
     @PostMapping("/password/reset")
     public ResponseEntity<String> resetPassword(
             @RequestParam String token,

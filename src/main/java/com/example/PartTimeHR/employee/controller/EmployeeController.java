@@ -1,7 +1,6 @@
 package com.example.PartTimeHR.employee.controller;
 
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
-import com.example.PartTimeHR.employee.dto.EmployeeLoginRequest;
 import com.example.PartTimeHR.employee.dto.UpdateEmployeeRequest;
 import com.example.PartTimeHR.employee.service.EmployeeService;
 import com.example.PartTimeHR.global.security.CustomUserDetails;

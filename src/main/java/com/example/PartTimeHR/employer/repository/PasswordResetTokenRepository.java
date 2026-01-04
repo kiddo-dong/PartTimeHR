@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.employer.service;
+package com.example.PartTimeHR.employer.repository;
 
 import com.example.PartTimeHR.auth.domain.PasswordResetToken;
 import org.springframework.data.jpa.repository.JpaRepository;

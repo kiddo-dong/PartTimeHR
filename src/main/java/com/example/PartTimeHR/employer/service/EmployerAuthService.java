@@ -8,6 +8,7 @@ import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.employer.dto.EmployerSignupRequest;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
+import com.example.PartTimeHR.employer.repository.PasswordResetTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
