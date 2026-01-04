@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.global.security;
 
+import com.example.PartTimeHR.auth.exception.EmailNotVerifiedException;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,14 +18,26 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) {
-        return employerRepository.findByEmail(email)
+
+        // Employer 먼저 조회
+        var employerOpt = employerRepository.findByEmail(email);
+
+        if (employerOpt.isPresent()) {
+            var employer = employerOpt.get();
+
+            // 🔥 여기
+            if (!employer.isEmailVerified()) {
+                throw new EmailNotVerifiedException();
+            }
+
+            return new CustomUserDetails(employer);
+        }
+
+        // Employee 조회 (직원은 이메일 인증 안함)
+        return employeeRepository.findByEmail(email)
                 .map(CustomUserDetails::new)
-                .orElseGet(() ->
-                        employeeRepository.findByEmail(email)
-                                .map(CustomUserDetails::new)
-                                .orElseThrow(() ->
-                                        new UsernameNotFoundException("이메일 또는 비밀번호가 올바르지 않습니다.")
-                                )
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("이메일 또는 비밀번호가 올바르지 않습니다.")
                 );
     }
 }

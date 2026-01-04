@@ -57,6 +57,9 @@ public class Employer {
     @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    private boolean emailVerified;
+
     // 권한
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -103,4 +106,10 @@ public class Employer {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    // 이메일 인증시 사용 메소드
+    public void verifyEmail() {
+        this.emailVerified = true;
+    }
+
 }
