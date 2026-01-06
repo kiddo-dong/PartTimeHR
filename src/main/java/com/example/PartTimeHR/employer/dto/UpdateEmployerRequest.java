@@ -27,5 +27,6 @@ public class UpdateEmployerRequest {
     private String currentPassword;  // 현재 비밀번호 (비밀번호 변경 시 필수)
 
     private Integer weekStartDay;  // 주간 시작 요일 (1=월요일, 2=화요일, ..., 7=일요일)
-}
 
+    private Boolean weeklyPayApplicable; // 주휴수당 적용 여부 (선택)
+}

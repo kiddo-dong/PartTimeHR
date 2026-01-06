@@ -12,4 +12,3 @@ public interface EmployerMapper {
     @Mapping(target = "role", expression = "java(employer.getRole().name())")
     EmployerInfoResponse toInfoResponse(Employer employer);
 }
-

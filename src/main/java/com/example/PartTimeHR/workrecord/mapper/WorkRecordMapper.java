@@ -19,6 +19,8 @@ public interface WorkRecordMapper {
     @Mapping(target = "totalWorkHours", expression = "java(calculateTotalWorkHours(workRecord))")
     @Mapping(target = "breakHours", expression = "java(calculateBreakHours(workRecord))")
     @Mapping(target = "actualWorkHours", expression = "java(calculateActualWorkHours(workRecord))")
+    @Mapping(target = "appliedHourlyWage", source = "appliedHourlyWage")
+    @Mapping(target = "appliedJobName", source = "appliedJobName")
     WorkRecordResponse toResponse(WorkRecord workRecord);
 
     // 총 근무 시간 계산 (출근 ~ 퇴근)
@@ -43,10 +45,7 @@ public interface WorkRecordMapper {
     default Double calculateActualWorkHours(WorkRecord workRecord) {
         Double total = calculateTotalWorkHours(workRecord);
         Double breakHours = calculateBreakHours(workRecord);
-        if (total == null) {
-            return null;
-        }
+        if (total == null) return null;
         return total - breakHours;
     }
 }
-

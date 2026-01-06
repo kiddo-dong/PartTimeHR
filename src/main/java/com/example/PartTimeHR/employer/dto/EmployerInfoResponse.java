@@ -18,6 +18,7 @@ public class EmployerInfoResponse {
     private String phone;
     private String storeName;
     private String role;
+    private boolean weeklyPayApplicable;
     private LocalDateTime createdAt;
     private Integer weekStartDay;
 }

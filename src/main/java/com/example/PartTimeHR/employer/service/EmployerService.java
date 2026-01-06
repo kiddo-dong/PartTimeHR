@@ -9,7 +9,7 @@ import com.example.PartTimeHR.employer.dto.*;
 import com.example.PartTimeHR.employer.dto.UpdateEmployerRequest;
 import com.example.PartTimeHR.employer.mapper.EmployerMapper;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
-import com.example.PartTimeHR.global.jwt.JwtProvider;
+import com.example.PartTimeHR.paypolicy.service.PayPolicyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,8 +26,7 @@ public class EmployerService {
     private final PasswordEncoder passwordEncoder;
     private final EmployerMapper employerMapper;
     private final EmployeeMapper employeeMapper;
-
-
+    private final PayPolicyService payPolicyService;
 
     // 사장님이 직원 등록
     @Transactional
@@ -53,6 +52,7 @@ public class EmployerService {
                 .name(request.getName())
                 .phone(request.getPhone())
                 .employer(employer)
+                .payPolicy(payPolicyService.getDefaultPolicy(employer))
                 .role(Role.ROLE_EMPLOYEE)
                 .build();
 
@@ -111,24 +111,25 @@ public class EmployerService {
             employer.setWeekStartDay(request.getWeekStartDay());
         }
 
+        // 주휴수당 적용 여부 수정
+        if (request.getWeeklyPayApplicable() != null) {
+            employer.setWeeklyPayApplicable(request.getWeeklyPayApplicable());
+        }
+
         // 비밀번호 수정
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            // 현재 비밀번호 확인
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
                 throw new IllegalArgumentException("비밀번호를 변경하려면 현재 비밀번호를 입력해주세요.");
             }
 
-            // 현재 비밀번호 검증
             if (!passwordEncoder.matches(request.getCurrentPassword(), employer.getPassword())) {
                 throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
             }
 
-            // 새 비밀번호 확인
             if (!request.getPassword().equals(request.getPasswordConfirm())) {
                 throw new IllegalArgumentException("새 비밀번호가 일치하지 않습니다.");
             }
 
-            // 비밀번호 변경
             employer.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
@@ -136,5 +137,6 @@ public class EmployerService {
 
         return employerMapper.toInfoResponse(employer);
     }
+
 
 }

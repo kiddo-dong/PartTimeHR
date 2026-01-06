@@ -2,6 +2,7 @@ package com.example.PartTimeHR.employer.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,4 +34,7 @@ public class EmployerSignupRequest {
     @NotBlank
     @Size(max = 50)
     private String storeName;
+
+    @NotNull
+    private boolean weeklyPayApplicable = true;
 }

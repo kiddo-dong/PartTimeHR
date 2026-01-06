@@ -1,10 +1,13 @@
 package com.example.PartTimeHR.employer.domain;
 
 
+import com.example.PartTimeHR.employee.domain.Employee;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 // 고용주(사장님)
 @Entity
@@ -42,6 +45,10 @@ public class Employer {
     
     public void setWeekStartDay(Integer weekStartDay) {
         this.weekStartDay = weekStartDay;
+    }
+
+    public void setWeeklyPayApplicable(boolean weeklyPayApplicable) {
+        this.weeklyPayApplicable = weeklyPayApplicable;
     }
 
     // PK
@@ -82,8 +89,12 @@ public class Employer {
     private Integer weekStartDay = 1;  // 기본값: 월요일
 
     // 직원들
-    // @OneToMany(mappedBy = "employer", fetch = FetchType.LAZY)
-    // private List<Employee> employees = new ArrayList<>();
+    @OneToMany(mappedBy = "employer", fetch = FetchType.LAZY)
+    private List<Employee> employees = new ArrayList<>();
+
+    // 주휴수당 지급 여부
+    @Column(nullable = false)
+    private boolean weeklyPayApplicable;
 
     // 생성 시간
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -111,5 +122,4 @@ public class Employer {
     public void verifyEmail() {
         this.emailVerified = true;
     }
-
 }

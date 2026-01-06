@@ -26,6 +26,9 @@ public class WorkRecordResponse {
     private Double breakHours;          // 휴게 시간
     private Double actualWorkHours;     // 실제 근무 시간 (총 - 휴게)
     private String memo;
+    private int appliedHourlyWage;   // 시급
+    private String appliedJobName;   // 직급
+    private Double todayPay;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

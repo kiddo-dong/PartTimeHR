@@ -67,6 +67,8 @@ public class WorkRecordService {
                 .clockOutTime(request.getClockOutTime())
                 .status(status)
                 .memo(request.getMemo())
+                .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
+                .appliedJobName(employee.getPayPolicy().getJobTitle())
                 .build();
 
         workRecordRepository.save(workRecord);
@@ -91,6 +93,9 @@ public class WorkRecordService {
         // 부분 수정 (null이 아닌 필드만 업데이트)
         if (request.getClockInTime() != null) {
             workRecord.setClockInTime(request.getClockInTime());
+
+            // 날짜 자동 설정 (출근일 기준)
+            workRecord.setWorkDate(request.getClockInTime().toLocalDate());
         }
         if (request.getBreakStartTime() != null) {
             workRecord.setBreakStartTime(request.getBreakStartTime());
@@ -293,6 +298,8 @@ public class WorkRecordService {
                 .workDate(today)
                 .clockInTime(now)
                 .status(WorkStatus.IN_PROGRESS)
+                .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
+                .appliedJobName(employee.getPayPolicy().getJobTitle())
                 .build();
 
         workRecordRepository.save(workRecord);

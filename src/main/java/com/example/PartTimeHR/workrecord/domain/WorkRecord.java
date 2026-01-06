@@ -47,6 +47,13 @@ public class WorkRecord {
     @Column(name = "clock_out_time")
     private LocalDateTime clockOutTime;
 
+    // 스냅샷: 근무 당시 정책 정보
+    @Column(nullable = false)
+    private int appliedHourlyWage;   // 그날 기준 시급
+
+    @Column(nullable = false, length = 50)
+    private String appliedJobName;   // 그날 기준 직급
+
     // 근무 상태
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

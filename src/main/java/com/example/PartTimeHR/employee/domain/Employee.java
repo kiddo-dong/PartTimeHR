@@ -2,6 +2,7 @@ package com.example.PartTimeHR.employee.domain;
 
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
+import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -60,6 +61,11 @@ public class Employee {
     @JoinColumn(name = "employer_id", nullable = false)
     private Employer employer;
 
+    // 직원이 현재 적용받는 정책(직급 / 시급)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pay_policy_id", nullable = false)
+    private PayPolicy payPolicy;
+
     // 생성 시간
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -80,5 +86,9 @@ public class Employee {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void setPayPolicy(PayPolicy payPolicy) {
+        this.payPolicy = payPolicy;
     }
 }
