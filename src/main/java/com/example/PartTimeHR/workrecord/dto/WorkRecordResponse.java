@@ -28,7 +28,6 @@ public class WorkRecordResponse {
     private String memo;
     private int appliedHourlyWage;   // 시급
     private String appliedJobName;   // 직급
-    private Double todayPay;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

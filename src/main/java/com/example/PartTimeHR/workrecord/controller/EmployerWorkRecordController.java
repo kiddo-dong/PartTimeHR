@@ -72,7 +72,7 @@ public class EmployerWorkRecordController {
         return ResponseEntity.ok(response);
     }
 
-    // 특정 기록 조회
+    // 특정 기록 조회 (이미 존재하는 출퇴근 기록의 id값(PK) )
     @GetMapping("/{recordId}")
     public ResponseEntity<WorkRecordResponse> getWorkRecord(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -83,9 +83,22 @@ public class EmployerWorkRecordController {
         return ResponseEntity.ok(response);
     }
 
-    // ==================== 사장님 로그인 상태에서 직원 출근/퇴근 ====================
+    // 오늘 출퇴근 기록 조회
+    @PostMapping("/today")
+    public ResponseEntity<WorkRecordResponse> getTodayRecordByEmployer(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody EmployeeClockInRequest request
+    ) {
+        WorkRecordResponse response = workRecordService.getTodayRecordByEmployer(userDetails.getEmail(), request);
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(response);
+    }
 
-    // 직원 출근하기 (직원이 이메일/비밀번호 입력)
+    // ==================== 사장님 로그인 상태(JWT)에서 직원 출근/퇴근 ====================
+    // 직원이 직접 이메일/비밀번호 입력 후 출근/휴게/퇴근 버튼 클릭
+    // 직원 출근하기
     @PostMapping("/clock-in")
     public ResponseEntity<WorkRecordResponse> clockInByEmployer(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -128,18 +141,4 @@ public class EmployerWorkRecordController {
         WorkRecordResponse response = workRecordService.clockOutByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
-
-    // 직원의 오늘 기록 조회
-    @PostMapping("/today")
-    public ResponseEntity<WorkRecordResponse> getTodayRecordByEmployer(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody EmployeeClockInRequest request
-    ) {
-        WorkRecordResponse response = workRecordService.getTodayRecordByEmployer(userDetails.getEmail(), request);
-        if (response == null) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(response);
-    }
 }
-

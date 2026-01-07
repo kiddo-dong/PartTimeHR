@@ -49,8 +49,6 @@ public class WorkRecordService {
             throw new IllegalArgumentException("자신의 직원에게만 출근 기록을 등록할 수 있습니다.");
         }
 
-        // 같은 날 여러 번 출근 가능하므로 중복 체크 제거
-
         // 시간 순서 검증
         validateTimeOrder(request.getClockInTime(), request.getBreakStartTime(),
                 request.getBreakEndTime(), request.getClockOutTime());
