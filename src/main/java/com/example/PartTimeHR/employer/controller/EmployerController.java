@@ -60,7 +60,7 @@ public class EmployerController {
         return ResponseEntity.ok(response);
     }
 
-    // 사장님 정보 수정
+    // 사장님 본인 정보 수정
     @PutMapping("/me")
     public ResponseEntity<EmployerInfoResponse> updateEmployer(
             @AuthenticationPrincipal CustomUserDetails userDetails,

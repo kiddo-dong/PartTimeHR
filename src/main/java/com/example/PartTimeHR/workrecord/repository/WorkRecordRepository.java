@@ -10,9 +10,6 @@ import java.util.Optional;
 
 public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
 
-    // 특정 직원의 특정 날짜 기록 조회
-    Optional<WorkRecord> findByEmployeeAndWorkDate(Employee employee, LocalDate workDate);
-
     // 특정 직원의 모든 기록 조회
     List<WorkRecord> findByEmployee(Employee employee);
 
@@ -28,5 +25,19 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
 
     // 특정 직원의 기록 조회 (날짜 범위)
     List<WorkRecord> findByEmployeeOrderByWorkDateDesc(Employee employee);
+
+    // ======= 리팩토링 시 및 새 구현 시 사용 ========
+
+    // 특정 직원의 특정 날짜 기록 조회
+    List<WorkRecord> findByEmployeeAndWorkDate(Employee employee, LocalDate workDate);
+
+
+    // userId로 특정 기간 조회
+    List<WorkRecord> findByEmployeeIdAndWorkDateBetween(
+            Long employeeId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
+
 }
 

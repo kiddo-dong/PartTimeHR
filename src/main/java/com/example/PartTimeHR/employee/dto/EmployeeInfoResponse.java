@@ -20,6 +20,8 @@ public class EmployeeInfoResponse {
     private Long employerId;
     private String employerName;
     private String storeName;
+    private String jobTitle;
+    private int hourlyWage;
     private LocalDateTime createdAt;
 }
 

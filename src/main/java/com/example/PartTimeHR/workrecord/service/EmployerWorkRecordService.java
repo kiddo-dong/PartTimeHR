@@ -249,48 +249,5 @@ public class EmployerWorkRecordService {
             return WorkStatus.IN_PROGRESS;
         }
     }
-
-    // 사장님 로그인 상태에서 직원의 오늘 가장 최근 기록 조회
-    @Transactional(readOnly = true)
-    public WorkRecordResponse getTodayRecordByEmployer(String email, EmployeeClockInRequest request) {
-        // 사장님 확인
-        Employer employer = employerRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
-
-        // 직원 인증
-        Employee employee = employeeRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-        // 자신의 직원인지 확인
-        if (!employee.getEmployer().getId().equals(employer.getId())) {
-            throw new IllegalArgumentException("자신의 직원만 조회할 수 있습니다.");
-        }
-
-        // 비밀번호 검증
-        if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
-
-        // 오늘의 가장 최근 기록 조회
-        LocalDate today = LocalDate.now();
-        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
-                employee, today, today
-        );
-
-        if (todayRecords.isEmpty()) {
-            return null;
-        }
-
-        // 가장 최근 출근 기록 반환 (clockInTime 기준)
-        WorkRecord latestRecord = todayRecords.stream()
-                .max(Comparator.comparing(WorkRecord::getClockInTime))
-                .orElse(null);
-
-        if (latestRecord == null) {
-            return null;
-        }
-
-        return workRecordMapper.toResponse(latestRecord);
-    }
 }
 

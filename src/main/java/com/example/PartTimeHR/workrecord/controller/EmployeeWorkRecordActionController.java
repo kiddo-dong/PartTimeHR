@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 // 직원이 직접 이메일/비밀번호 입력 후 출근/휴게/퇴근 버튼 클릭
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/employee/work-records/actions")
+@RequestMapping("/api/employees/work-records/actions")
 @PreAuthorize("hasRole('EMPLOYER')")
 public class EmployeeWorkRecordActionController {
 

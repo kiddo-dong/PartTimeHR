@@ -7,6 +7,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import java.time.Duration;
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface WorkRecordMapper {
@@ -22,6 +23,8 @@ public interface WorkRecordMapper {
     @Mapping(target = "appliedHourlyWage", source = "appliedHourlyWage")
     @Mapping(target = "appliedJobName", source = "appliedJobName")
     WorkRecordResponse toResponse(WorkRecord workRecord);
+
+    List<WorkRecordResponse> toResponseList(List<WorkRecord> workRecordList);
 
     // 총 근무 시간 계산 (출근 ~ 퇴근)
     default Double calculateTotalWorkHours(WorkRecord workRecord) {

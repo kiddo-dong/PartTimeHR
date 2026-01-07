@@ -15,4 +15,3 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     List<Employee> findByEmployer(Employer employer);
 }
-

@@ -7,5 +7,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UpdatePayPolicyRequest {
     private String jobTitle;     // 새 직급
-    private int hourlyWage;      // 새 시급
+    private Integer hourlyWage;      // 새 시급
 }

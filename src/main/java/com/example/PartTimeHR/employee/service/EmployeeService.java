@@ -6,8 +6,11 @@ import com.example.PartTimeHR.employee.dto.EmployeeLoginRequest;
 import com.example.PartTimeHR.employee.dto.UpdateEmployeeRequest;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
+import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
 import com.example.PartTimeHR.global.jwt.JwtProvider;
+import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
+import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,60 +21,47 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final EmployerRepository employerRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtProvider jwtProvider;
+    private final PayPolicyRepository payPolicyRepository;
     private final EmployeeMapper employeeMapper;
 
-    // 현재 로그인한 직원 정보 조회
     @Transactional(readOnly = true)
-    public EmployeeInfoResponse getMyInfo(String email) {
-        Employee employee = employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+    public EmployeeInfoResponse getMyInfo(Long employeeId) {
 
-        return employeeMapper.toInfoResponse(employee);
-    }
+        // 직원 조회
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("직원을 찾을 수 없습니다."));
 
-    // 직원 정보 수정
-    @Transactional
-    public EmployeeInfoResponse updateEmployee(String email, UpdateEmployeeRequest request) {
-        Employee employee = employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
+        Employer employer = employee.getEmployer();
 
-        // 이름 수정
-        if (request.getName() != null && !request.getName().isBlank()) {
-            employee.setName(request.getName());
+        // 직원별 정책 있으면 그걸 사용, 없으면 사장님 기본 정책
+        PayPolicy payPolicy = null;
+
+        if (employee.getPayPolicy() != null && employee.getPayPolicy().isActive()) {
+            payPolicy = employee.getPayPolicy();
+        } else {
+            payPolicy = payPolicyRepository
+                    .findByEmployerAndIsDefaultTrueAndActiveTrue(employer)
+                    .orElseThrow(() -> new RuntimeException("적용 가능한 급여 정책이 없습니다."));
         }
 
-        // 전화번호 수정
-        if (request.getPhone() != null && !request.getPhone().isBlank()) {
-            employee.setPhone(request.getPhone());
-        }
+        // DTO 변환
+        EmployeeInfoResponse response = employeeMapper.toInfoResponse(employee);
 
-        // 비밀번호 수정
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            // 현재 비밀번호 확인
-            if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
-                throw new IllegalArgumentException("비밀번호를 변경하려면 현재 비밀번호를 입력해주세요.");
-            }
-
-            // 현재 비밀번호 검증
-            if (!passwordEncoder.matches(request.getCurrentPassword(), employee.getPassword())) {
-                throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
-            }
-
-            // 새 비밀번호 확인
-            if (!request.getPassword().equals(request.getPasswordConfirm())) {
-                throw new IllegalArgumentException("새 비밀번호가 일치하지 않습니다.");
-            }
-
-            // 비밀번호 변경
-            employee.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
-
-        employeeRepository.save(employee);
-
-        return employeeMapper.toInfoResponse(employee);
+        // 직원별 정책 정보 채우기
+        return EmployeeInfoResponse.builder()
+                .id(response.getId())
+                .email(response.getEmail())
+                .name(response.getName())
+                .phone(response.getPhone())
+                .role(response.getRole())
+                .employerId(response.getEmployerId())
+                .employerName(response.getEmployerName())
+                .storeName(response.getStoreName())
+                .jobTitle(payPolicy.getJobTitle())
+                .hourlyWage(payPolicy.getHourlyWage())
+                .createdAt(response.getCreatedAt())
+                .build();
     }
 }
+
 

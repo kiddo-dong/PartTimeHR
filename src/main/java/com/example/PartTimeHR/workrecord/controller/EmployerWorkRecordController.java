@@ -2,7 +2,6 @@ package com.example.PartTimeHR.workrecord.controller;
 
 import com.example.PartTimeHR.global.security.CustomUserDetails;
 import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
-import com.example.PartTimeHR.workrecord.dto.EmployeeClockInRequest;
 import com.example.PartTimeHR.workrecord.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.service.EmployerWorkRecordService;
@@ -86,19 +85,4 @@ public class EmployerWorkRecordController {
         WorkRecordResponse response = employerWorkRecordService.getWorkRecord(recordId, userDetails.getEmail());
         return ResponseEntity.ok(response);
     }
-
-    // 오늘 출퇴근 기록 조회
-    @PostMapping("/today")
-    public ResponseEntity<WorkRecordResponse> getTodayRecordByEmployer(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody EmployeeClockInRequest request
-    ) {
-        WorkRecordResponse response = employerWorkRecordService.getTodayRecordByEmployer(userDetails.getEmail(), request);
-        if (response == null) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(response);
-    }
-
-
 }

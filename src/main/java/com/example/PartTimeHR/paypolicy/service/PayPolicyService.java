@@ -31,7 +31,11 @@ public class PayPolicyService {
     }
 
     @Transactional
-    public UpdatePayPolicyResponse updateEmployeePolicy(Long employeeId, String employerEmail, UpdatePayPolicyRequest request) {
+    public UpdatePayPolicyResponse updateEmployeePolicy(
+            Long employeeId,
+            String employerEmail,
+            UpdatePayPolicyRequest request
+    ) {
         // 사장님 검증
         Employer employer = employerRepository.findByEmail(employerEmail)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
@@ -44,11 +48,18 @@ public class PayPolicyService {
             throw new IllegalArgumentException("자신의 직원만 수정 가능합니다.");
         }
 
+        // 🔥 null-safe 처리: 요청 값이 null이면 기존 값을 유지
+        String jobTitle = request.getJobTitle() != null ? request.getJobTitle() :
+                (employee.getPayPolicy() != null ? employee.getPayPolicy().getJobTitle() : "알바생");
+
+        Integer hourlyWage = request.getHourlyWage() != null ? request.getHourlyWage() :
+                (employee.getPayPolicy() != null ? employee.getPayPolicy().getHourlyWage() : 10320);
+
         // 새 정책 생성
         PayPolicy newPolicy = PayPolicy.builder()
                 .employer(employer)
-                .jobTitle(request.getJobTitle())
-                .hourlyWage(request.getHourlyWage())
+                .jobTitle(jobTitle)
+                .hourlyWage(hourlyWage)
                 .isDefault(false)
                 .build();
 

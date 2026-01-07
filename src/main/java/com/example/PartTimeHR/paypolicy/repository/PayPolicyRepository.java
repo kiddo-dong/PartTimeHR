@@ -10,4 +10,5 @@ public interface PayPolicyRepository extends JpaRepository<PayPolicy, Long> {
 
     // 사장님 기준 기본 정책
     Optional<PayPolicy> findByEmployerAndIsDefaultTrue(Employer employer);
+    Optional<PayPolicy> findByEmployerAndIsDefaultTrueAndActiveTrue(Employer employer);
 }
