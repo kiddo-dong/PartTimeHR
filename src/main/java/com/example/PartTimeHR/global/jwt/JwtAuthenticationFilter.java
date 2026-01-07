@@ -45,6 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtProvider.validateToken(token)) {
 
             Claims claims = jwtProvider.getClaims(token);
+            Long id = claims.get("id", Long.class);
             String email = claims.getSubject();
             String roleStr = claims.get("role", String.class); // JWT에는 문자열로 저장됨
             Role role = Role.valueOf(roleStr); // 문자열 → Enum 변환

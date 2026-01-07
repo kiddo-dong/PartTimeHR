@@ -22,7 +22,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class EmployeeWorkRecordService {
+public class EmployeeWorkRecordActionService {
 
     private final WorkRecordRepository workRecordRepository;
     private final EmployeeRepository employeeRepository;

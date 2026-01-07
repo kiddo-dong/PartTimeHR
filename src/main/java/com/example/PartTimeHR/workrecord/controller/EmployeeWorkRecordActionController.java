@@ -3,7 +3,7 @@ package com.example.PartTimeHR.workrecord.controller;
 import com.example.PartTimeHR.global.security.CustomUserDetails;
 import com.example.PartTimeHR.workrecord.dto.EmployeeClockInRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
-import com.example.PartTimeHR.workrecord.service.EmployeeWorkRecordService;
+import com.example.PartTimeHR.workrecord.service.EmployeeWorkRecordActionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('EMPLOYER')")
 public class EmployeeWorkRecordActionController {
 
-    private final EmployeeWorkRecordService employeeWorkRecordService;
+    private final EmployeeWorkRecordActionService employeeWorkRecordActionService;
 
     // 직원 출근하기
     @PostMapping("/clock-in")
@@ -33,7 +33,7 @@ public class EmployeeWorkRecordActionController {
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
 
-        WorkRecordResponse response = employeeWorkRecordService.clockInByEmployer(userDetails.getEmail(), request);
+        WorkRecordResponse response = employeeWorkRecordActionService.clockInByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -44,7 +44,7 @@ public class EmployeeWorkRecordActionController {
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
 
-        WorkRecordResponse response = employeeWorkRecordService.startBreakByEmployer(userDetails.getEmail(), request);
+        WorkRecordResponse response = employeeWorkRecordActionService.startBreakByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 
@@ -55,7 +55,7 @@ public class EmployeeWorkRecordActionController {
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
 
-        WorkRecordResponse response = employeeWorkRecordService.endBreakByEmployer(userDetails.getEmail(), request);
+        WorkRecordResponse response = employeeWorkRecordActionService.endBreakByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 
@@ -66,7 +66,7 @@ public class EmployeeWorkRecordActionController {
             @Valid @RequestBody EmployeeClockInRequest request
     ) {
 
-        WorkRecordResponse response = employeeWorkRecordService.clockOutByEmployer(userDetails.getEmail(), request);
+        WorkRecordResponse response = employeeWorkRecordActionService.clockOutByEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
     }
 }

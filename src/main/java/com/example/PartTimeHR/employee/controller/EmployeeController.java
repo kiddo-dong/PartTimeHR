@@ -18,7 +18,7 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
-    // 현재 로그인한 직원 정보 조회 (인증 필요)
+    // 현재 로그인한 직원 정보 조회 (모든 권한 접근 가능)
     @GetMapping("/me")
     public ResponseEntity<EmployeeInfoResponse> getMyInfo(
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -41,7 +41,7 @@ public class EmployeeController {
         return ResponseEntity.ok(response);
     }
 
-    // 직원 정보 수정
+    // 직원 정보 수정 (모든 권한 접근 가능)
     @PutMapping("/me")
     public ResponseEntity<EmployeeInfoResponse> updateEmployee(
             @AuthenticationPrincipal CustomUserDetails userDetails,

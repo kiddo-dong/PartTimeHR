@@ -31,12 +31,14 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String email = userDetails.getEmail();
+        Long id = userDetails.getId();
         String role = userDetails.getRole().name(); // Enum -> String
+
 
         // SessionId Log
         // logger.info("Session_Id : " + request.getSession().getId());
 
-        String accessToken = jwtProvider.createAccessToken(email, role);
+        String accessToken = jwtProvider.createAccessToken(email, id, role);
 
         // FormLogin 후 jwt 발행 및 jwt인증 인가로 FormLogin Session 폐기
         request.getSession().invalidate();

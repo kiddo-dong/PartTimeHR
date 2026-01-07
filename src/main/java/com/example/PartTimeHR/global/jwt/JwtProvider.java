@@ -27,12 +27,13 @@ public class JwtProvider {
     }
 
     // 토큰 생성
-    public String createAccessToken(String email, String role) {
+    public String createAccessToken(String email, Long id,String role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .subject(email)
+                .claim("id", id)
                 .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiry)
