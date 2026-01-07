@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+// 사장 전용 (관리 + 조회)
 // 사장님(고용주)이 직접 생성/수정/삭제 및 조회가 가능한 api
 @RestController
 @RequiredArgsConstructor
@@ -27,6 +28,7 @@ public class EmployerWorkRecordController {
 
     private final EmployerWorkRecordService employerWorkRecordService;
 
+    // ===== Create/Update/Delete API =====
     // 수동 등록
     @PostMapping
     public ResponseEntity<WorkRecordResponse> createWorkRecord(
@@ -60,6 +62,7 @@ public class EmployerWorkRecordController {
         return ResponseEntity.noContent().build();
     }
 
+    // ===== READ API =====
     // 전체 조회
     @GetMapping
     public ResponseEntity<List<WorkRecordResponse>> getAllRecords(
