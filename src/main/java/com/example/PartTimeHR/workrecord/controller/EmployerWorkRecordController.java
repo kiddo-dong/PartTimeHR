@@ -7,14 +7,12 @@ import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.service.EmployerWorkRecordService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 // 사장 전용 (관리 + 조회)
@@ -62,27 +60,9 @@ public class EmployerWorkRecordController {
     }
 
     // ===== READ API =====
-    // 전체 조회
-    @GetMapping
-    public ResponseEntity<List<WorkRecordResponse>> getAllRecords(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam(required = false) Long employeeId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
-
-        List<WorkRecordResponse> response = employerWorkRecordService.getAllRecords(userDetails.getEmail(), employeeId, startDate, endDate);
-        return ResponseEntity.ok(response);
-    }
-
-    // 특정 기록 조회 (이미 존재하는 출퇴근 기록의 id값(PK) )
-    @GetMapping("/{recordId}")
-    public ResponseEntity<WorkRecordResponse> getWorkRecord(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long recordId
-    ) {
-
-        WorkRecordResponse response = employerWorkRecordService.getWorkRecord(recordId, userDetails.getEmail());
+    @GetMapping("/today")
+    public ResponseEntity<List<WorkRecordResponse>> getTodayRecords(){
+        List<WorkRecordResponse> response = employerWorkRecordService.todayWorkRecords();
         return ResponseEntity.ok(response);
     }
 }

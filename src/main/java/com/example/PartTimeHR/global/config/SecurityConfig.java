@@ -21,11 +21,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final CustomUserDetailsService userDetailsService; // 추가
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final LoginSuccessHandler loginSuccessHandler;
     private final LoginFailureHandler loginFailureHandler;
 
+    // 추 후 개발 -> 이메일 인증 안되었을때 예외 메시지 넣기
 
     @Bean
     public PasswordEncoder passwordEncoder() {

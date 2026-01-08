@@ -4,36 +4,33 @@ import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.example.PartTimeHR.workrecord.exception.WorkRecordNotFoundException;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
 import com.example.PartTimeHR.workrecord.domain.WorkStatus;
 import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
-import com.example.PartTimeHR.workrecord.dto.EmployeeClockInRequest;
 import com.example.PartTimeHR.workrecord.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.mapper.WorkRecordMapper;
-import com.example.PartTimeHR.workrecord.repository.WorkRecordRepository;
+import com.example.PartTimeHR.workrecord.repository.EmployerWorkRecordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class EmployerWorkRecordService {
 
-    private final WorkRecordRepository workRecordRepository;
+    private final EmployerWorkRecordRepository employerWorkRecordRepository;
     private final EmployeeRepository employeeRepository;
     private final EmployerRepository employerRepository;
     private final WorkRecordMapper workRecordMapper;
-    private final PasswordEncoder passwordEncoder;
 
-    // ==================== 고용주용 메서드 ====================
-
+    // ====== 생성/수정/삭제 ======
     // 수동 등록
     @Transactional
     public WorkRecordResponse createWorkRecord(String email, CreateWorkRecordRequest request) {
@@ -68,7 +65,7 @@ public class EmployerWorkRecordService {
                 .appliedJobName(employee.getPayPolicy().getJobTitle())
                 .build();
 
-        workRecordRepository.save(workRecord);
+        employerWorkRecordRepository.save(workRecord);
 
         return workRecordMapper.toResponse(workRecord);
     }
@@ -79,7 +76,7 @@ public class EmployerWorkRecordService {
         Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
-        WorkRecord workRecord = workRecordRepository.findById(recordId)
+        WorkRecord workRecord = employerWorkRecordRepository.findById(recordId)
                 .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
 
         // 자신의 직원의 기록인지 확인
@@ -123,7 +120,7 @@ public class EmployerWorkRecordService {
         );
         workRecord.setStatus(newStatus);
 
-        workRecordRepository.save(workRecord);
+        employerWorkRecordRepository.save(workRecord);
 
         return workRecordMapper.toResponse(workRecord);
     }
@@ -134,7 +131,7 @@ public class EmployerWorkRecordService {
         Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
-        WorkRecord workRecord = workRecordRepository.findById(recordId)
+        WorkRecord workRecord = employerWorkRecordRepository.findById(recordId)
                 .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
 
         // 자신의 직원의 기록인지 확인
@@ -142,71 +139,10 @@ public class EmployerWorkRecordService {
             throw new IllegalArgumentException("자신의 직원의 출근 기록만 삭제할 수 있습니다.");
         }
 
-        workRecordRepository.delete(workRecord);
+        employerWorkRecordRepository.delete(workRecord);
     }
 
-    // 전체 조회
-    @Transactional(readOnly = true)
-    public List<WorkRecordResponse> getAllRecords(String email, Long employeeId, LocalDate startDate, LocalDate endDate) {
-        Employer employer = employerRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
-
-        List<WorkRecord> records;
-
-        if (employeeId != null) {
-            // 특정 직원의 기록
-            Employee employee = employeeRepository.findById(employeeId)
-                    .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-            // 자신의 직원인지 확인
-            if (!employee.getEmployer().getId().equals(employer.getId())) {
-                throw new IllegalArgumentException("자신의 직원의 기록만 조회할 수 있습니다.");
-            }
-
-            if (startDate != null && endDate != null) {
-                records = workRecordRepository.findByEmployeeAndWorkDateBetween(employee, startDate, endDate);
-            } else {
-                records = workRecordRepository.findByEmployeeOrderByWorkDateDesc(employee);
-            }
-        } else {
-            // 모든 직원의 기록 (자신의 직원들만)
-            List<Employee> employees = employeeRepository.findByEmployer(employer);
-
-            if (startDate != null && endDate != null) {
-                records = employees.stream()
-                        .flatMap(emp -> workRecordRepository.findByEmployeeAndWorkDateBetween(emp, startDate, endDate).stream())
-                        .toList();
-            } else {
-                records = employees.stream()
-                        .flatMap(emp -> workRecordRepository.findByEmployeeOrderByWorkDateDesc(emp).stream())
-                        .toList();
-            }
-        }
-
-        return records.stream()
-                .map(workRecordMapper::toResponse)
-                .toList();
-    }
-
-    // 특정 기록 조회
-    @Transactional(readOnly = true)
-    public WorkRecordResponse getWorkRecord(Long recordId, String email) {
-        Employer employer = employerRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
-
-        WorkRecord workRecord = workRecordRepository.findById(recordId)
-                .orElseThrow(() -> new IllegalArgumentException("출근 기록을 찾을 수 없습니다."));
-
-        // 자신의 직원의 기록인지 확인
-        if (!workRecord.getEmployee().getEmployer().getId().equals(employer.getId())) {
-            throw new IllegalArgumentException("자신의 직원의 출근 기록만 조회할 수 있습니다.");
-        }
-
-        return workRecordMapper.toResponse(workRecord);
-    }
-
-    // ==================== Private Helper Methods ====================
-
+    // ====== 생성/수정/삭제 헬퍼 메소드 ======
     // 시간 순서 검증
     private void validateTimeOrder(LocalDateTime clockIn, LocalDateTime breakStart,
                                    LocalDateTime breakEnd, LocalDateTime clockOut) {
@@ -248,6 +184,20 @@ public class EmployerWorkRecordService {
         } else {
             return WorkStatus.IN_PROGRESS;
         }
+    }
+
+    // ======= 기록 조회 ========
+    public List<WorkRecordResponse> todayWorkRecords() {
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
+        List<WorkRecord> workRecordList = employerWorkRecordRepository.findByToday(today);
+
+        if (workRecordList.isEmpty()) {
+            throw new WorkRecordNotFoundException("오늘 출근한 직원이 없습니다.");
+        }
+
+        return workRecordMapper.toResponseList(workRecordList);
     }
 }
 

@@ -9,7 +9,7 @@ import com.example.PartTimeHR.workrecord.domain.WorkStatus;
 import com.example.PartTimeHR.workrecord.dto.EmployeeClockInRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.mapper.WorkRecordMapper;
-import com.example.PartTimeHR.workrecord.repository.WorkRecordRepository;
+import com.example.PartTimeHR.workrecord.repository.EmployeeWorkRecordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmployeeWorkRecordActionService {
 
-    private final WorkRecordRepository workRecordRepository;
+    private final EmployeeWorkRecordRepository employeeWorkRecordRepository;
     private final EmployeeRepository employeeRepository;
     private final EmployerRepository employerRepository;
     private final WorkRecordMapper workRecordMapper;
@@ -55,7 +55,7 @@ public class EmployeeWorkRecordActionService {
 
         // 오늘의 출근 기록 확인 (아직 퇴근하지 않은 기록이 있는지 체크)
         LocalDate today = LocalDate.now();
-        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+        List<WorkRecord> todayRecords = employeeWorkRecordRepository.findByEmployeeAndWorkDateBetween(
                 employee, today, today
         );
 
@@ -79,7 +79,7 @@ public class EmployeeWorkRecordActionService {
                 .appliedJobName(employee.getPayPolicy().getJobTitle())
                 .build();
 
-        workRecordRepository.save(workRecord);
+        employeeWorkRecordRepository.save(workRecord);
 
         return workRecordMapper.toResponse(workRecord);
     }
@@ -107,7 +107,7 @@ public class EmployeeWorkRecordActionService {
 
         // 오늘의 가장 최근 기록 찾기
         LocalDate today = LocalDate.now();
-        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+        List<WorkRecord> todayRecords = employeeWorkRecordRepository.findByEmployeeAndWorkDateBetween(
                 employee, today, today
         );
 
@@ -128,7 +128,7 @@ public class EmployeeWorkRecordActionService {
         workRecord.setBreakStartTime(now);
         workRecord.setStatus(WorkStatus.ON_BREAK);
 
-        workRecordRepository.save(workRecord);
+        employeeWorkRecordRepository.save(workRecord);
 
         return workRecordMapper.toResponse(workRecord);
     }
@@ -156,7 +156,7 @@ public class EmployeeWorkRecordActionService {
 
         // 오늘의 가장 최근 기록 찾기
         LocalDate today = LocalDate.now();
-        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+        List<WorkRecord> todayRecords = employeeWorkRecordRepository.findByEmployeeAndWorkDateBetween(
                 employee, today, today
         );
 
@@ -177,7 +177,7 @@ public class EmployeeWorkRecordActionService {
         workRecord.setBreakEndTime(now);
         workRecord.setStatus(WorkStatus.IN_PROGRESS);
 
-        workRecordRepository.save(workRecord);
+        employeeWorkRecordRepository.save(workRecord);
 
         return workRecordMapper.toResponse(workRecord);
     }
@@ -205,7 +205,7 @@ public class EmployeeWorkRecordActionService {
 
         // 오늘의 가장 최근 기록 찾기
         LocalDate today = LocalDate.now();
-        List<WorkRecord> todayRecords = workRecordRepository.findByEmployeeAndWorkDateBetween(
+        List<WorkRecord> todayRecords = employeeWorkRecordRepository.findByEmployeeAndWorkDateBetween(
                 employee, today, today
         );
 
@@ -226,7 +226,7 @@ public class EmployeeWorkRecordActionService {
         workRecord.setClockOutTime(now);
         workRecord.setStatus(WorkStatus.COMPLETED);
 
-        workRecordRepository.save(workRecord);
+        employeeWorkRecordRepository.save(workRecord);
 
         return workRecordMapper.toResponse(workRecord);
     }

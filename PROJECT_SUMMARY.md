@@ -2,7 +2,7 @@
 
 ## 📋 프로젝트 개요
 
-**프로젝트명**: PartTimeHR  
+**프로젝트명**: PartTimeHR
 **목적**: 자영업자(사장님)를 위한 알바 관리 웹 애플리케이션  
 **기술 스택**: Spring Boot 4.0.0, Java 21, MySQL, JWT, MapStruct
 
@@ -40,10 +40,9 @@ PartTimeHR/
 
 #### 인증/인가
 - ✅ 회원가입 (`POST /api/employers/signup`)
-- ✅ 로그인 (`POST /api/employers/login`) - JWT 토큰 발급
+- ✅ 로그인 (`POST /api/auth/login`) - JWT 토큰 발급
 - ✅ 내 정보 조회 (`GET /api/employers/me`)
 - ✅ 프로필 조회 (`GET /api/employers/profile`)
-- ✅ 사장님 전용 대시보드 (`GET /api/employers/dashboard`)
 
 #### 직원 관리
 - ✅ 직원 등록 (`POST /api/employers/employees`)
@@ -52,8 +51,7 @@ PartTimeHR/
 ### 2. Employee (직원) 기능
 
 #### 인증/인가
-- ✅ 회원가입 (`POST /api/employees/signup`)
-- ✅ 로그인 (`POST /api/employees/login`) - JWT 토큰 발급
+- ✅ 로그인 (`POST /api/auth/login`) - JWT 토큰 발급
 - ✅ 내 정보 조회 (`GET /api/employees/me`)
 - ✅ 직원 전용 대시보드 (`GET /api/employees/dashboard`)
 
@@ -61,11 +59,14 @@ PartTimeHR/
 
 ## 🔐 보안 기능
 
+### 사용자 생성 시 email 인증 (SMTP)
+
+
 ### JWT 인증 시스템
 - ✅ JWT 토큰 생성 (`JwtTokenProvider`)
 - ✅ JWT 토큰 검증 (`JwtAuthenticationFilter`)
 - ✅ SecurityContext에 인증 정보 저장
-- ✅ 토큰 만료 시간: 1시간 (3600000ms)
+- ✅ 토큰 만료 시간: 24시간 (-> 추후 refrashToken으로 확장)
 
 ### 역할 기반 접근 제어 (RBAC)
 - ✅ `ROLE_EMPLOYER` - 사장님 권한
