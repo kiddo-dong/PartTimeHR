@@ -13,12 +13,15 @@ import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.mapper.WorkRecordMapper;
 import com.example.PartTimeHR.workrecord.repository.EmployerWorkRecordRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
 @Service
@@ -33,8 +36,8 @@ public class EmployerWorkRecordService {
     // ====== 생성/수정/삭제 ======
     // 수동 등록
     @Transactional
-    public WorkRecordResponse createWorkRecord(String email, CreateWorkRecordRequest request) {
-        Employer employer = employerRepository.findByEmail(email)
+    public WorkRecordResponse createWorkRecord(Long employerId, CreateWorkRecordRequest request) {
+        Employer employer = employerRepository.findById(employerId)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         Employee employee = employeeRepository.findById(request.getEmployeeId())
@@ -72,8 +75,8 @@ public class EmployerWorkRecordService {
 
     // 수정
     @Transactional
-    public WorkRecordResponse updateWorkRecord(Long recordId, String email, UpdateWorkRecordRequest request) {
-        Employer employer = employerRepository.findByEmail(email)
+    public WorkRecordResponse updateWorkRecord(Long recordId, Long employerId, UpdateWorkRecordRequest request) {
+        Employer employer = employerRepository.findById(employerId)
                 .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
 
         WorkRecord workRecord = employerWorkRecordRepository.findById(recordId)
@@ -186,7 +189,10 @@ public class EmployerWorkRecordService {
         }
     }
 
-    // ======= 기록 조회 ========
+
+    // =============== 기록 조회 ===============
+
+    // 당일 전체
     public List<WorkRecordResponse> todayWorkRecords() {
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
@@ -194,10 +200,133 @@ public class EmployerWorkRecordService {
         List<WorkRecord> workRecordList = employerWorkRecordRepository.findByToday(today);
 
         if (workRecordList.isEmpty()) {
-            throw new WorkRecordNotFoundException("오늘 출근한 직원이 없습니다.");
+            throw new WorkRecordNotFoundException("오늘 출근한 직원이 존재하지 않습니다.");
         }
 
         return workRecordMapper.toResponseList(workRecordList);
     }
+
+    // 가게 전체 - 주간
+    public List<WorkRecordResponse> findStoreWeek(
+            Long employerId,
+            int offset
+    ) {
+        Integer weekStartDay = employerRepository.findWeekStartDay(employerId);
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate start = calculateWeekStart(today, weekStartDay).plusWeeks(offset);
+        LocalDate end = start.plusDays(6);
+
+        List<WorkRecord> workRecordList = employerWorkRecordRepository.findByEmployerAndPeriod(employerId, start, end);
+
+        if (workRecordList.isEmpty()) {
+            throw new WorkRecordNotFoundException("해당 기간의 근무 기록이 존재하지 않습니다.");
+        }
+
+        return workRecordMapper.toResponseList(workRecordList);
+
+    }
+
+    // 가게 전체 - 월간
+    public List<WorkRecordResponse> findStoreMonth(
+            Long employerId,
+            int offset
+    ) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate targetMonth = today.plusMonths(offset);
+
+        LocalDate start = targetMonth.withDayOfMonth(1);
+        LocalDate end = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
+
+        List<WorkRecord> workRecordList = employerWorkRecordRepository.findByEmployerAndPeriod(employerId, start, end);
+
+        if (workRecordList.isEmpty()) {
+            throw new WorkRecordNotFoundException("해당 기간의 근무 기록이 존재하지 않습니다.");
+        }
+
+        return workRecordMapper.toResponseList(workRecordList);
+    }
+
+    // 특정 직원 - 주간
+    public List<WorkRecordResponse> findEmployeeWeek(
+            Long employerId,
+            Long employeeId,
+            int offset
+    ) {
+        // 접근 권한 확인
+        validateEmployee(employerId, employeeId);
+
+        Integer weekStartDay = employerRepository.findWeekStartDay(employerId);
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate start = calculateWeekStart(today, weekStartDay).plusWeeks(offset);
+        LocalDate end = start.plusDays(6);
+
+        List<WorkRecord> workRecordList = employerWorkRecordRepository.findByEmployeeIdAndWorkDateBetween(employeeId, start, end);
+
+        if (workRecordList.isEmpty()) {
+            throw new WorkRecordNotFoundException("해당 기간의 근무 기록이 존재하지 않습니다.");
+        }
+
+        return workRecordMapper.toResponseList(workRecordList);
+    }
+
+    // 특정 직원 - 월간
+    public List<WorkRecordResponse> findEmployeeMonth(
+            Long employerId,
+            Long employeeId,
+            int offset
+    ) {
+        validateEmployee(employerId, employeeId);
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate targetMonth = today.plusMonths(offset);
+
+        LocalDate start = targetMonth.withDayOfMonth(1);
+        LocalDate end = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
+
+        List<WorkRecord> workRecordList = employerWorkRecordRepository.findByEmployeeIdAndWorkDateBetween(employeeId, start, end);
+
+        if (workRecordList.isEmpty()) {
+            throw new WorkRecordNotFoundException("해당 기간의 근무 기록이 존재하지 않습니다.");
+        }
+
+        return workRecordMapper.toResponseList(workRecordList);
+    }
+
+    //   기간 조회 (공통)
+    public List<WorkRecordResponse> findByPeriod(
+            Long employerId,
+            Long employeeId,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        validateEmployee(employerId, employeeId);
+
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("시작 날짜는 종료 날짜보다 이후일 수 없습니다.");
+        }
+
+        List<WorkRecord> workRecordList = employerWorkRecordRepository.findByEmployeeIdAndWorkDateBetween(employeeId, startDate, endDate);
+
+        if (workRecordList.isEmpty()) {
+            throw new WorkRecordNotFoundException("해당 기간의 근무 기록이 존재하지 않습니다.");
+        }
+
+        return workRecordMapper.toResponseList(workRecordList);
+    }
+
+    // ===== 유틸 메소드 =====
+    private void validateEmployee(Long employerId, Long employeeId) {
+        if (!employeeRepository.existsByIdAndEmployerId(employeeId, employerId)) {
+            throw new AccessDeniedException("해당 직원에 대한 접근 권한이 없습니다.");
+        }
+    }
+
+    private LocalDate calculateWeekStart(LocalDate today, int weekStartDay) {
+        DayOfWeek startDay = DayOfWeek.of(weekStartDay);
+        return today.with(TemporalAdjusters.previousOrSame(startDay));
+    }
 }
+
 

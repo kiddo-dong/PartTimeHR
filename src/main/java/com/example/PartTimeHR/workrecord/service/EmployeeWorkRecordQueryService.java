@@ -31,9 +31,9 @@ public class EmployeeWorkRecordQueryService {
 
     // 오늘 근무 기록 조회 (/today)
     @Transactional(readOnly = true)
-    public List<WorkRecordResponse> today(Long userId) {
+    public List<WorkRecordResponse> today(Long employeeId) {
 
-        Employee employee = employeeRepository.findById(userId)
+        Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(EmployeeNotFoundException::new);
 
         // KST 기준 오늘
