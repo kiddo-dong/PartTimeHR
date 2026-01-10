@@ -1,6 +1,7 @@
 package com.example.PartTimeHR.employer.service;
 
 import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Role;
@@ -25,61 +26,16 @@ public class EmployerService {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmployerMapper employerMapper;
-    private final EmployeeMapper employeeMapper;
     private final PayPolicyService payPolicyService;
 
-    // 사장님이 직원 등록
-    @Transactional
-    public void registerEmployee(String email, RegisterEmployeeRequest request) {
-        // 사장님 조회
-        Employer employer = employerRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
-
-        // 이메일 중복 검사
-        if (employeeRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
-        }
-
-        // 비밀번호 확인 검사
-        if (!request.getPassword().equals(request.getPasswordConfirm())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
-
-        // Employee 생성
-        Employee employee = Employee.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .name(request.getName())
-                .phone(request.getPhone())
-                .employer(employer)
-                .payPolicy(payPolicyService.getDefaultPolicy(employer))
-                .role(Role.ROLE_EMPLOYEE)
-                .build();
-
-        // 저장
-        employeeRepository.save(employee);
-    }
-
-    // 현재 로그인한 사장님 정보 조회
+    //================= Employer CRUD Service ==================
+    // 본인 조회(Employer)
     @Transactional(readOnly = true)
     public EmployerInfoResponse getMyInfo(String email) {
         Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         return employerMapper.toInfoResponse(employer);
-    }
-
-    // 사장님의 직원 목록 조회
-    @Transactional(readOnly = true)
-    public List<EmployeeListResponse> getMyEmployees(String email) {
-        Employer employer = employerRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
-
-        List<Employee> employees = employeeRepository.findByEmployer(employer);
-
-        return employees.stream()
-                .map(employeeMapper::toListResponse)
-                .toList();
     }
 
     // 사장님 정보 수정
@@ -139,4 +95,77 @@ public class EmployerService {
     }
 
 
+    // ================ Employee CRUD 용 Service ==================
+    // 사장님이 직원 등록
+    @Transactional
+    public void registerEmployee(String email, RegisterEmployeeRequest request) {
+        // 사장님 조회
+        Employer employer = employerRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+
+        // 이메일 중복 검사
+        if (employeeRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        // 비밀번호 확인 검사
+        if (!request.getPassword().equals(request.getPasswordConfirm())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // Employee 생성
+        Employee employee = Employee.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .name(request.getName())
+                .phone(request.getPhone())
+                .employer(employer)
+                .payPolicy(payPolicyService.getDefaultPolicy(employer))
+                .role(Role.ROLE_EMPLOYEE)
+                .build();
+
+        // 저장
+        employeeRepository.save(employee);
+    }
+
+    // 직원 단일 조회
+    @Transactional(readOnly = true)
+    public EmployeeResponse getMyEmployee(Long employerId, Long employeeId) {
+        EmployeeResponse response = employerRepository.findEmployee(employerId, employeeId);
+
+        if(response == null){
+            throw new IllegalArgumentException("해당하는 직원이 존재하지 않습니다.");
+        }
+
+        return response;
+    }
+
+    // 직원 목록 조회
+    @Transactional(readOnly = true)
+    public List<EmployeeListResponse> getMyEmployees(Long employerId) {
+        Employer employer = employerRepository.findById(employerId)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+        List<EmployeeListResponse> responses = employerRepository.findEmployeeList(employerId);
+
+        if(responses.isEmpty()){
+            throw new IllegalArgumentException("해당하는 직원이 존재하지 않습니다.");
+        }
+
+        return responses;
+    }
+
+    // 직급에 해당하는 직원 리스트 조회 - 조건 전체
+    @Transactional(readOnly = true)
+    public List<EmployeeListResponse> getMyEmployeesJobTitle(Long employerId, String jobTitle) {
+        Employer employer = employerRepository.findById(employerId)
+                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
+
+        List<EmployeeListResponse> responses = employerRepository.findEmployeeListJobTitle(employerId, jobTitle);
+
+        if(responses.isEmpty()){
+            throw new IllegalArgumentException("해당하는 직원이 존재하지 않습니다.");
+        }
+
+        return responses;
+    }
 }

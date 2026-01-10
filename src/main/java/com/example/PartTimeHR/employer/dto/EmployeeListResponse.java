@@ -16,6 +16,8 @@ public class EmployeeListResponse {
     private String email;
     private String name;
     private String phone;
+    private String jobTitle;
+    private Integer hourlyWage;
     private LocalDateTime createdAt;
 }
 

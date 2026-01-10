@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.employer.controller;
 
+import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
 import com.example.PartTimeHR.employer.dto.*;
 import com.example.PartTimeHR.employer.service.EmployerService;
 import com.example.PartTimeHR.global.security.CustomUserDetails;
@@ -18,12 +19,13 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/employers")
+@PreAuthorize("hasRole('EMPLOYER')")
 public class EmployerController {
 
     private final EmployerService employerService;
 
-    // 현재 로그인 한 사장님 정보 조회
-    // 현재 로그인한 사용자 정보 조회 (인증 필요)
+    //================= Employer CRUD Controller==================
+    // 본인 정보 조회(사장님)
     @GetMapping("/me")
     public ResponseEntity<EmployerInfoResponse> getMyInfo(
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -31,31 +33,6 @@ public class EmployerController {
 
         // jwt 인증 정보로 find
         EmployerInfoResponse response = employerService.getMyInfo(userDetails.getEmail());
-
-        return ResponseEntity.ok(response);
-    }
-
-    // 사장님이 직원 등록
-    @PostMapping("/employees")
-    @PreAuthorize("hasRole('EMPLOYER')")
-    public ResponseEntity<Void> registerEmployee(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody RegisterEmployeeRequest request
-    ) {
-
-        employerService.registerEmployee(userDetails.getEmail(), request);
-
-        return ResponseEntity.status(HttpStatus.CREATED).build();
-    }
-
-    // 사장님의 직원 목록 조회
-    @GetMapping("/employees")
-    @PreAuthorize("hasRole('EMPLOYER')")
-    public ResponseEntity<List<EmployeeListResponse>> getMyEmployees(
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-
-        List<EmployeeListResponse> response = employerService.getMyEmployees(userDetails.getEmail());
 
         return ResponseEntity.ok(response);
     }
@@ -68,5 +45,53 @@ public class EmployerController {
     ) {
         EmployerInfoResponse response = employerService.updateEmployer(userDetails.getEmail(), request);
         return ResponseEntity.ok(response);
+    }
+
+    // ================ Employee CRUD 용 Controller ==================
+
+    // 사장님이 직원 등록
+    @PostMapping("/employees")
+    public ResponseEntity<Void> registerEmployee(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody RegisterEmployeeRequest request
+    ) {
+
+        employerService.registerEmployee(userDetails.getEmail(), request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    // 단일 직원 정보 조회 - 단일
+    @GetMapping("/employees/{employeeId}")
+    public ResponseEntity<EmployeeResponse> getEmployee(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long employeeId
+    ) {
+        EmployeeResponse response = employerService.getMyEmployee(userDetails.getId(), employeeId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // 사장님의 직원 정보 리스트 조회 - 전체
+    @GetMapping("/employees/all")
+    public ResponseEntity<List<EmployeeListResponse>> getMyEmployees(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+
+        List<EmployeeListResponse> response = employerService.getMyEmployees(userDetails.getId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // 지정한 직급의 직원 정보 조회 - 조건 전체
+    @GetMapping("employees/jobtitle")
+    public ResponseEntity<List<EmployeeListResponse>> getMyEmployeesJobTitle(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam String jobTitle
+    ) {
+
+        List<EmployeeListResponse> responses = employerService.getMyEmployeesJobTitle(userDetails.getId(), jobTitle);
+
+        return ResponseEntity.ok(responses);
     }
 }

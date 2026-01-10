@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.employee.dto;
+package com.example.PartTimeHR.employer.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,15 +11,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EmployeeInfoResponse {
+public class EmployeeResponse {
     private Long id;
     private String email;
     private String name;
     private String phone;
-    private String role;
-    private Long employerId;
-    private String employerName;
-    private String storeName;
     private String jobTitle;
     private Integer hourlyWage;
     private LocalDateTime createdAt;
