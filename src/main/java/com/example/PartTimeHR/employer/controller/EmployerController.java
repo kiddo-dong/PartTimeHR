@@ -47,6 +47,14 @@ public class EmployerController {
         return ResponseEntity.ok(response);
     }
 
+    // 사용자 정보 삭제 == 추후 확장 (연관 DB정보들 제거 후 사용자 정보 삭제)
+    @DeleteMapping("/me")
+    public void deleteEmployer(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+
+    }
+
     // ================ Employee CRUD 용 Controller ==================
 
     // 사장님이 직원 등록
