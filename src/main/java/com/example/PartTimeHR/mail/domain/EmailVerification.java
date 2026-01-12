@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.auth.domain;
+package com.example.PartTimeHR.mail.domain;
 
 import com.example.PartTimeHR.employer.domain.Employer;
 import jakarta.persistence.*;
@@ -14,7 +14,7 @@ import java.util.UUID;
 public class EmailVerification {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy =  GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 

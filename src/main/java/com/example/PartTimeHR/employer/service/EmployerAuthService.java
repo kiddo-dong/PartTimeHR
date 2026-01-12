@@ -1,9 +1,9 @@
 package com.example.PartTimeHR.employer.service;
 
-import com.example.PartTimeHR.auth.domain.EmailVerification;
-import com.example.PartTimeHR.auth.domain.PasswordResetToken;
-import com.example.PartTimeHR.auth.repository.EmailVerificationRepository;
-import com.example.PartTimeHR.auth.service.MailService;
+import com.example.PartTimeHR.mail.domain.EmailVerification;
+import com.example.PartTimeHR.mail.domain.PasswordResetToken;
+import com.example.PartTimeHR.mail.repository.EmailVerificationRepository;
+import com.example.PartTimeHR.mail.service.MailService;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.employer.dto.EmployerSignupRequest;

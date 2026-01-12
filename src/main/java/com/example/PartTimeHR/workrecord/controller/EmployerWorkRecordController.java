@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.workrecord.controller;
 
-import com.example.PartTimeHR.global.security.CustomUserDetails;
+import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;

@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.auth.service;
+package com.example.PartTimeHR.mail.service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

@@ -1,9 +1,8 @@
 package com.example.PartTimeHR.global.config;
 
-import com.example.PartTimeHR.global.handler.LoginFailureHandler;
-import com.example.PartTimeHR.global.handler.LoginSuccessHandler;
-import com.example.PartTimeHR.global.jwt.JwtAuthenticationFilter;
-import com.example.PartTimeHR.global.security.CustomUserDetailsService;
+import com.example.PartTimeHR.security.handler.LoginFailureHandler;
+import com.example.PartTimeHR.security.handler.LoginSuccessHandler;
+import com.example.PartTimeHR.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

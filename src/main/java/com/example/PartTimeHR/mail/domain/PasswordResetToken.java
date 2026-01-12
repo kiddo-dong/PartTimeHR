@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.auth.domain;
+package com.example.PartTimeHR.mail.domain;
 
 import com.example.PartTimeHR.employer.domain.Employer;
 import jakarta.persistence.*;

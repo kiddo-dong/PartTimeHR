@@ -1,6 +1,6 @@
-package com.example.PartTimeHR.auth.controller;
+package com.example.PartTimeHR.mail.controller;
 
-import com.example.PartTimeHR.auth.service.EmailVerificationService;
+import com.example.PartTimeHR.mail.service.EmailVerificationService;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
 import lombok.RequiredArgsConstructor;

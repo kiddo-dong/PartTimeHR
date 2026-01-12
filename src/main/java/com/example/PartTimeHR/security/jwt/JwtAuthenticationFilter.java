@@ -1,11 +1,11 @@
-package com.example.PartTimeHR.global.jwt;
+package com.example.PartTimeHR.security.jwt;
 
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
-import com.example.PartTimeHR.global.security.CustomUserDetails;
+import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

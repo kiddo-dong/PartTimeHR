@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.global.security;
+package com.example.PartTimeHR.security.customuser;
 
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employer.domain.Employer;

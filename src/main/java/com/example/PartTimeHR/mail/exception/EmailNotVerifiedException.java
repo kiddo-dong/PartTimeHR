@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.auth.exception;
+package com.example.PartTimeHR.mail.exception;
 
 import org.springframework.security.core.AuthenticationException;
 

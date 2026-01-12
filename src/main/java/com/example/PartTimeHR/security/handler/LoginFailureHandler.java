@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.global.handler;
+package com.example.PartTimeHR.security.handler;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

@@ -1,7 +1,7 @@
-package com.example.PartTimeHR.auth.service;
+package com.example.PartTimeHR.mail.service;
 
-import com.example.PartTimeHR.auth.domain.EmailVerification;
-import com.example.PartTimeHR.auth.repository.EmailVerificationRepository;
+import com.example.PartTimeHR.mail.domain.EmailVerification;
+import com.example.PartTimeHR.mail.repository.EmailVerificationRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

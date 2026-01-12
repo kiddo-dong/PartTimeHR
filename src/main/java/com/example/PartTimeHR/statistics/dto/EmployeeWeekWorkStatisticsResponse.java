@@ -1,15 +1,15 @@
 package com.example.PartTimeHR.statistics.dto;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Getter
 @Setter
+@Builder
 @RequiredArgsConstructor
+@AllArgsConstructor
 public class EmployeeWeekWorkStatisticsResponse {
     private LocalDate weekStartDate;   // 주 시작일
     private LocalDate weekEndDate;     // 주 종료일

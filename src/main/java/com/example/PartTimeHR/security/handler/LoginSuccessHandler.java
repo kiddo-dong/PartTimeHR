@@ -1,17 +1,15 @@
-package com.example.PartTimeHR.global.handler;
+package com.example.PartTimeHR.security.handler;
 
-import com.example.PartTimeHR.global.jwt.JwtProvider;
-import com.example.PartTimeHR.global.security.CustomUserDetails;
+import com.example.PartTimeHR.security.jwt.JwtProvider;
+import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.logging.Logger;
 
 @Slf4j
 @Component

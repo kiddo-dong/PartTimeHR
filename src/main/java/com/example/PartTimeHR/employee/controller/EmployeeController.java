@@ -1,10 +1,8 @@
 package com.example.PartTimeHR.employee.controller;
 
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
-import com.example.PartTimeHR.employee.dto.UpdateEmployeeRequest;
 import com.example.PartTimeHR.employee.service.EmployeeService;
-import com.example.PartTimeHR.global.security.CustomUserDetails;
-import jakarta.validation.Valid;
+import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

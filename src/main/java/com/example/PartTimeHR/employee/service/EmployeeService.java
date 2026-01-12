@@ -2,17 +2,12 @@ package com.example.PartTimeHR.employee.service;
 
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
-import com.example.PartTimeHR.employee.dto.EmployeeLoginRequest;
-import com.example.PartTimeHR.employee.dto.UpdateEmployeeRequest;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
-import com.example.PartTimeHR.employer.repository.EmployerRepository;
-import com.example.PartTimeHR.global.jwt.JwtProvider;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,6 +1,6 @@
-package com.example.PartTimeHR.global.security;
+package com.example.PartTimeHR.security.customuser;
 
-import com.example.PartTimeHR.auth.exception.EmailNotVerifiedException;
+import com.example.PartTimeHR.mail.exception.EmailNotVerifiedException;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
-package com.example.PartTimeHR.auth.repository;
+package com.example.PartTimeHR.mail.repository;
 
-import com.example.PartTimeHR.auth.domain.EmailVerification;
+import com.example.PartTimeHR.mail.domain.EmailVerification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

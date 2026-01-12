@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.global.jwt;
+package com.example.PartTimeHR.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

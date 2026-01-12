@@ -1,17 +1,14 @@
 package com.example.PartTimeHR.employer.controller;
 
-import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
 import com.example.PartTimeHR.employer.dto.*;
 import com.example.PartTimeHR.employer.service.EmployerService;
-import com.example.PartTimeHR.global.security.CustomUserDetails;
+import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
