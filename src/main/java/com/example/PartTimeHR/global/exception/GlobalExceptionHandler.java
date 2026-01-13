@@ -1,8 +1,6 @@
 package com.example.PartTimeHR.global.exception;
 
 import com.example.PartTimeHR.global.dto.ErrorResponse;
-import com.example.PartTimeHR.workrecord.exception.EmployeeNotFoundException;
-import com.example.PartTimeHR.workrecord.exception.WorkRecordNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -17,7 +15,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(EmployeeNotFoundException.class)
+    /*@ExceptionHandler(EmployeeNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleEmployeeNotFound(EmployeeNotFoundException e) {
         return buildError(HttpStatus.NOT_FOUND, "EMPLOYEE_NOT_FOUND", e.getMessage());
     }
@@ -25,7 +23,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(WorkRecordNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleWorkRecordNotFound(WorkRecordNotFoundException e) {
         return buildError(HttpStatus.NOT_FOUND, "WORK_RECORD_NOT_FOUND", e.getMessage());
-    }
+    }*/
 
     // Validation 에러
     @ExceptionHandler(MethodArgumentNotValidException.class)

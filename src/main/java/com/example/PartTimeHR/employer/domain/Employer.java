@@ -1,10 +1,8 @@
 package com.example.PartTimeHR.employer.domain;
 
-
-import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.store.domain.Store;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,20 +33,8 @@ public class Employer {
         this.phone = phone;
     }
     
-    public void setStoreName(String storeName) {
-        this.storeName = storeName;
-    }
-    
     public void setPassword(String password) {
         this.password = password;
-    }
-    
-    public void setWeekStartDay(Integer weekStartDay) {
-        this.weekStartDay = weekStartDay;
-    }
-
-    public void setWeeklyPayApplicable(boolean weeklyPayApplicable) {
-        this.weeklyPayApplicable = weeklyPayApplicable;
     }
 
     // PK
@@ -80,21 +66,8 @@ public class Employer {
     @Column(name = "employer_phone", nullable = false, length = 20)
     private String phone;
 
-    // 가게 이름
-    @Column(name = "store_name", nullable = false, length = 50)
-    private String storeName;
-
-    // 주간 시작 요일 (1=월요일, 2=화요일, ..., 7=일요일)
-    @Column(name = "week_start_day", nullable = false)
-    private Integer weekStartDay = 1;  // 기본값: 월요일
-
-    // 직원들
     @OneToMany(mappedBy = "employer", fetch = FetchType.LAZY)
-    private List<Employee> employees = new ArrayList<>();
-
-    // 주휴수당 지급 여부
-    @Column(nullable = false)
-    private boolean weeklyPayApplicable;
+    private List<Store> stores = new ArrayList<>();
 
     // 생성 시간
     @Column(name = "created_at", nullable = false, updatable = false)

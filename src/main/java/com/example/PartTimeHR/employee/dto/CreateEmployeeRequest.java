@@ -1,4 +1,4 @@
-package com.example.PartTimeHR.employer.dto;
+package com.example.PartTimeHR.employee.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -9,9 +9,8 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class EmployerSignupRequest {
+public class CreateEmployeeRequest {
 
-    /* ===== Employer 정보 ===== */
     @Email
     @NotBlank
     private String email;
@@ -32,23 +31,8 @@ public class EmployerSignupRequest {
     @Size(max = 20)
     private String phone;
 
-    /* ===== 초기 Store 정보 ===== */
-
-    @NotBlank
-    @Size(max = 50)
-    private String storeName;
-
-    @NotBlank
-    @Size(max = 20)
-    private String storePhone;
-
-    @NotBlank
-    @Size(max = 100)
-    private String address;
-
-    @NotBlank
-    private Integer weekStartDay;
-
     @NotNull
-    private Boolean weeklyPayApplicable;
+    private Long storeId;
+
+    private Long payPolicyId; // 선택적, null이면 기본 정책 사용
 }

@@ -11,6 +11,8 @@ import com.example.PartTimeHR.employer.repository.EmployerRepository;
 import com.example.PartTimeHR.employer.repository.PasswordResetTokenRepository;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
+import com.example.PartTimeHR.store.domain.Store;
+import com.example.PartTimeHR.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,39 +28,45 @@ public class EmployerAuthService {
     private final MailService mailService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PayPolicyRepository payPolicyRepository;
+    private final StoreRepository storeRepository;
 
     // signup logic
     // 회원가입
     @Transactional
     public void signup(EmployerSignupRequest request) {
 
-        // 1. 이메일 중복 체크
         if (employerRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
-        // 2. 비밀번호 확인
         if (!request.getPassword().equals(request.getPasswordConfirm())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 3. Employer 생성
+        // 1. Employer 생성 (인증용)
         Employer employer = Employer.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
                 .phone(request.getPhone())
-                .storeName(request.getStoreName())
-                .weekStartDay(1)
                 .role(Role.ROLE_EMPLOYER)
                 .emailVerified(false)
-                .weeklyPayApplicable(request.isWeeklyPayApplicable())
                 .build();
         employerRepository.save(employer);
 
-        // 4. 기본 PayPolicy 생성
-        PayPolicy defaultPolicy = PayPolicy.builder()
+        // 2. Store 생성
+        Store store = Store.builder()
+                .name(request.getStoreName())
+                .storePhone(request.getStorePhone())
+                .weekStartDay(1)
+                .weeklyPayApplicable(request.getWeeklyPayApplicable())
                 .employer(employer)
+                .build();
+        storeRepository.save(store);
+
+        // 3. 기본 PayPolicy 생성 (Store 기준)
+        PayPolicy defaultPolicy = PayPolicy.builder()
+                .store(store)
                 .jobTitle("알바생")
                 .hourlyWage(10320)
                 .isDefault(true)
@@ -66,15 +74,15 @@ public class EmployerAuthService {
                 .build();
         payPolicyRepository.save(defaultPolicy);
 
-        // 5. 이메일 인증 생성
+        // 4. 이메일 인증
         EmailVerification ev = EmailVerification.create(employer);
         emailVerificationRepository.save(ev);
 
-        // 6. HTML 이메일 생성
-        String html = createVerificationEmailHtml(employer.getName(), ev.getToken());
-
-        // 7. HTML 메일 발송
-        mailService.sendHtmlEmail(employer.getEmail(), "이메일 인증", html);
+        mailService.sendHtmlEmail(
+                employer.getEmail(),
+                "이메일 인증",
+                createVerificationEmailHtml(employer.getName(), ev.getToken())
+        );
     }
 
 

@@ -1,13 +1,20 @@
 package com.example.PartTimeHR.employee.service;
 
 import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.employee.dto.CreateEmployeeRequest;
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
+import com.example.PartTimeHR.employee.exception.PasswordMismatchException;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
-import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
+import com.example.PartTimeHR.store.domain.Store;
+import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
+import com.example.PartTimeHR.store.exception.StoreNotFoundException;
+import com.example.PartTimeHR.store.repository.StoreRepository;
+import com.example.PartTimeHR.employer.domain.Role;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,47 +23,72 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
+    private final StoreRepository storeRepository;
     private final PayPolicyRepository payPolicyRepository;
     private final EmployeeMapper employeeMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    @Transactional(readOnly = true)
-    public EmployeeInfoResponse getMyInfo(Long employeeId) {
+    @Transactional
+    public EmployeeInfoResponse createEmployee(CreateEmployeeRequest request, Long employerId) {
 
-        // 직원 조회
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("직원을 찾을 수 없습니다."));
+        // 매장 조회
+        Store store = storeRepository.findById(request.getStoreId())
+                .orElseThrow(StoreNotFoundException::new);
 
-        Employer employer = employee.getEmployer();
-
-        // 직원별 정책 있으면 그걸 사용, 없으면 사장님 기본 정책
-        PayPolicy payPolicy = null;
-
-        if (employee.getPayPolicy() != null && employee.getPayPolicy().isActive()) {
-            payPolicy = employee.getPayPolicy();
-        } else {
-            payPolicy = payPolicyRepository
-                    .findByEmployerAndIsDefaultTrueAndActiveTrue(employer)
-                    .orElseThrow(() -> new RuntimeException("적용 가능한 급여 정책이 없습니다."));
+        // 사장 소유 확인
+        if (!store.getEmployer().getId().equals(employerId)) {
+            throw new StoreAccessDeniedException();
         }
 
-        // DTO 변환
-        EmployeeInfoResponse response = employeeMapper.toInfoResponse(employee);
+        // 비밀번호 확인
+        if (!request.getPassword().equals(request.getPasswordConfirm())) {
+            throw new PasswordMismatchException();
+        }
 
-        // 직원별 정책 정보 채우기
-        return EmployeeInfoResponse.builder()
-                .id(response.getId())
-                .email(response.getEmail())
-                .name(response.getName())
-                .phone(response.getPhone())
-                .role(response.getRole())
-                .employerId(response.getEmployerId())
-                .employerName(response.getEmployerName())
-                .storeName(response.getStoreName())
-                .jobTitle(payPolicy.getJobTitle())
-                .hourlyWage(payPolicy.getHourlyWage())
-                .createdAt(response.getCreatedAt())
+        // 비밀번호 암호화
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+
+        // PayPolicy 결정
+        PayPolicy policy;
+        if (request.getPayPolicyId() != null) {
+            policy = payPolicyRepository.findById(request.getPayPolicyId())
+                    .orElseThrow(() -> new RuntimeException("해당 급여 정책이 없습니다."));
+            if (!policy.getStore().getId().equals(store.getId())) {
+                throw new StoreAccessDeniedException();
+            }
+        } else {
+            policy = payPolicyRepository.findByStoreIdAndIsDefaultTrue(store.getId())
+                    .orElseThrow(() -> new RuntimeException("기본 급여 정책이 없습니다."));
+        }
+
+        // Employee 생성
+        Employee employee = Employee.builder()
+                .email(request.getEmail())
+                .password(encodedPassword)
+                .name(request.getName())
+                .phone(request.getPhone())
+                .store(store)
+                .payPolicy(policy)
+                .role(Role.ROLE_EMPLOYEE)
                 .build();
+
+        Employee saved = employeeRepository.save(employee);
+
+        // DTO 변환
+        EmployeeInfoResponse response = employeeMapper.toInfoResponse(saved);
+
+        // 응답
+        response = new EmployeeInfoResponse(
+                response.getId(),
+                response.getEmail(),
+                response.getName(),
+                response.getPhone(),
+                response.getStoreId(),
+                response.getStoreName(),
+                policy.getJobTitle(),
+                policy.getHourlyWage()
+        );
+
+        return response;
     }
 }
-
-

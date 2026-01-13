@@ -1,9 +1,9 @@
 package com.example.PartTimeHR.paypolicy.controller;
 
-import com.example.PartTimeHR.security.customuser.CustomUserDetails;
-import com.example.PartTimeHR.paypolicy.dto.UpdatePayPolicyRequest;
-import com.example.PartTimeHR.paypolicy.dto.UpdatePayPolicyResponse;
+import com.example.PartTimeHR.paypolicy.dto.CreatePayPolicyRequest;
 import com.example.PartTimeHR.paypolicy.service.PayPolicyService;
+import com.example.PartTimeHR.security.customuser.CustomUserDetails;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,24 +12,24 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/paypolicy")
+@RequestMapping("/store/{storeId}/paypolicies")
 @PreAuthorize("hasRole('EMPLOYER')")
 public class PayPolicyController {
 
     private final PayPolicyService payPolicyService;
 
-    @PutMapping("/employee/{employeeId}")
-    public ResponseEntity<UpdatePayPolicyResponse> updateEmployeePolicy(
-            @PathVariable Long employeeId,
-            @RequestBody UpdatePayPolicyRequest request,
-            @AuthenticationPrincipal CustomUserDetails userDetails
+    @PostMapping
+    public ResponseEntity<Void> createPayPolicy(
+            @PathVariable Long storeId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody CreatePayPolicyRequest request
     ) {
-        UpdatePayPolicyResponse response = payPolicyService.updateEmployeePolicy(
-                employeeId,
-                userDetails.getEmail(),
+        payPolicyService.createPayPolicy(
+                storeId,
+                userDetails.getId(),
                 request
         );
-        return ResponseEntity.ok(response);
-    }
 
+        return ResponseEntity.ok().build();
+    }
 }

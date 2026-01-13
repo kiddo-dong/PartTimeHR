@@ -1,13 +1,12 @@
 package com.example.PartTimeHR.paypolicy.service;
 
-import com.example.PartTimeHR.employee.domain.Employee;
-import com.example.PartTimeHR.employee.repository.EmployeeRepository;
-import com.example.PartTimeHR.employer.domain.Employer;
-import com.example.PartTimeHR.employer.repository.EmployerRepository;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
-import com.example.PartTimeHR.paypolicy.dto.UpdatePayPolicyRequest;
-import com.example.PartTimeHR.paypolicy.dto.UpdatePayPolicyResponse;
+import com.example.PartTimeHR.paypolicy.dto.CreatePayPolicyRequest;
 import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
+import com.example.PartTimeHR.store.domain.Store;
+import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
+import com.example.PartTimeHR.store.exception.StoreNotFoundException;
+import com.example.PartTimeHR.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,62 +16,37 @@ import org.springframework.transaction.annotation.Transactional;
 public class PayPolicyService {
 
     private final PayPolicyRepository payPolicyRepository;
-    private final EmployerRepository employerRepository;
-    private final EmployeeRepository employeeRepository;
+    private final StoreRepository storeRepository;
 
     @Transactional
-    public PayPolicy getDefaultPolicy(Employer employer) {
-        return payPolicyRepository.findByEmployerAndIsDefaultTrue(employer)
-                .orElseThrow(() -> new IllegalStateException("기본 급여 정책이 없습니다."));
-    }
+    public void createPayPolicy(Long storeId, Long employerId, CreatePayPolicyRequest request) {
 
-    public PayPolicy createPolicy(PayPolicy policy) {
-        return payPolicyRepository.save(policy);
-    }
+        // 1️⃣ 가게 조회
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(StoreNotFoundException::new);
 
-    @Transactional
-    public UpdatePayPolicyResponse updateEmployeePolicy(
-            Long employeeId,
-            String employerEmail,
-            UpdatePayPolicyRequest request
-    ) {
-        // 사장님 검증
-        Employer employer = employerRepository.findByEmail(employerEmail)
-                .orElseThrow(() -> new IllegalArgumentException("사장님을 찾을 수 없습니다."));
-
-        // 직원 검증
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new IllegalArgumentException("직원을 찾을 수 없습니다."));
-
-        if(!employee.getEmployer().getId().equals(employer.getId())) {
-            throw new IllegalArgumentException("자신의 직원만 수정 가능합니다.");
+        // 2️⃣ 사장 소유 확인
+        if (!store.getEmployer().getId().equals(employerId)) {
+            throw new StoreAccessDeniedException();
         }
 
-        // 🔥 null-safe 처리: 요청 값이 null이면 기존 값을 유지
-        String jobTitle = request.getJobTitle() != null ? request.getJobTitle() :
-                (employee.getPayPolicy() != null ? employee.getPayPolicy().getJobTitle() : "알바생");
+        // 3️⃣ 기본 정책 처리
+        if (request.getIsDefault()) {
+            payPolicyRepository.findByStoreIdAndIsDefaultTrue(storeId)
+                    .ifPresent(existing -> {
+                        existing.setDefault(false);
+                    });
+        }
 
-        Integer hourlyWage = request.getHourlyWage() != null ? request.getHourlyWage() :
-                (employee.getPayPolicy() != null ? employee.getPayPolicy().getHourlyWage() : 10320);
-
-        // 새 정책 생성
-        PayPolicy newPolicy = PayPolicy.builder()
-                .employer(employer)
-                .jobTitle(jobTitle)
-                .hourlyWage(hourlyWage)
-                .isDefault(false)
+        // 4️⃣ 정책 생성
+        PayPolicy policy = PayPolicy.builder()
+                .store(store)
+                .jobTitle(request.getJobTitle())
+                .hourlyWage(request.getHourlyWage())
+                .isDefault(request.getIsDefault())
+                .active(true)
                 .build();
 
-        payPolicyRepository.save(newPolicy);
-
-        // 직원에 새 정책 연결
-        employee.setPayPolicy(newPolicy);
-
-        return UpdatePayPolicyResponse.builder()
-                .employeeId(employee.getId())
-                .employeeName(employee.getName())
-                .jobTitle(newPolicy.getJobTitle())
-                .hourlyWage(newPolicy.getHourlyWage())
-                .build();
+        payPolicyRepository.save(policy);
     }
 }
