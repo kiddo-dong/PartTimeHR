@@ -1,4 +1,4 @@
-# PartTimeHR 프로젝트
+# PartTimeHR 프로젝트(초기 MVP)
 
 ## 1. 프로젝트 개요
 
