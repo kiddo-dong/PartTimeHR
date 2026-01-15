@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/store/{storeId}/paypolicies")
+@RequestMapping("/api/store/{storeId}/paypolicies")
 @PreAuthorize("hasRole('EMPLOYER')")
 public class PayPolicyController {
 

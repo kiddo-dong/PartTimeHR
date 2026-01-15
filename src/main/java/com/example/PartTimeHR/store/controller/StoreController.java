@@ -49,7 +49,7 @@ public class StoreController {
     }
 
     // ====== 조회 ======
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<StoreInfoResponse>> myStores(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {

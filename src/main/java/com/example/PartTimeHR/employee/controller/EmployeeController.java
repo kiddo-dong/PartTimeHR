@@ -12,26 +12,49 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/employees")
+@PreAuthorize("hasRole('EMPLOYER')")
 public class EmployeeController {
 
     private final EmployeeService employeeService;
 
-    // 사장님만 접근 가능
+    // 직원 생성
     @PostMapping
-    @PreAuthorize("hasRole('EMPLOYER')")
     public ResponseEntity<EmployeeInfoResponse> createEmployee(
             @Valid @RequestBody CreateEmployeeRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long employerId = userDetails.getId();
 
         EmployeeInfoResponse response =
-                employeeService.createEmployee(request, employerId);
+                employeeService.createEmployee(request, userDetails.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // 전체 직원 조회
+    @GetMapping("/{storeId}/all")
+    public ResponseEntity<List<EmployeeInfoResponse>> getAllEmployees(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId
+    ){
+        List<EmployeeInfoResponse> responses = employeeService.getAllEmployees(userDetails.getId(), storeId);
+        return ResponseEntity.status(HttpStatus.OK).body(responses);
+    }
+
+    // 직원 조회
+    @GetMapping("/{storeId}")
+    public ResponseEntity<EmployeeInfoResponse> getEmployee(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId,
+            @RequestParam Long employeeId
+    ){
+        EmployeeInfoResponse response = employeeService.getEmployee(userDetails.getId(), storeId, employeeId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
 

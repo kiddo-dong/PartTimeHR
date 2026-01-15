@@ -3,6 +3,8 @@ package com.example.PartTimeHR.employee.service;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.dto.CreateEmployeeRequest;
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
+import com.example.PartTimeHR.employee.exception.EmployeeAccessDeniedException;
+import com.example.PartTimeHR.employee.exception.EmployeeNotFoundException;
 import com.example.PartTimeHR.employee.exception.PasswordMismatchException;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
@@ -18,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class EmployeeService {
@@ -28,6 +32,7 @@ public class EmployeeService {
     private final EmployeeMapper employeeMapper;
     private final PasswordEncoder passwordEncoder;
 
+    // 직원 생성
     @Transactional
     public EmployeeInfoResponse createEmployee(CreateEmployeeRequest request, Long employerId) {
 
@@ -91,4 +96,72 @@ public class EmployeeService {
 
         return response;
     }
+
+
+    // 전체 직원 조회
+    @Transactional(readOnly = true)
+    public List<EmployeeInfoResponse> getAllEmployees(Long employerId, Long storeId) {
+
+        // 가게 존재 여부
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(StoreNotFoundException::new);
+
+        // 조회 가능한 가게인지 여부
+        if (!store.getEmployer().getId().equals(employerId)) {
+            throw new StoreAccessDeniedException();
+        }
+
+        List<Employee> employees = employeeRepository.findByStoreId(storeId);
+
+        return employees.stream()
+                .map(employee -> new EmployeeInfoResponse(
+                        employee.getId(),
+                        employee.getEmail(),
+                        employee.getName(),
+                        employee.getPhone(),
+                        store.getId(),
+                        store.getName(),
+                        employee.getPayPolicy().getJobTitle(),
+                        employee.getPayPolicy().getHourlyWage()
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public EmployeeInfoResponse getEmployee(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
+        // 가게 조회
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(StoreNotFoundException::new);
+
+        // 사장 소유 가게인지 검증
+        if (!store.getEmployer().getId().equals(employerId)) {
+            throw new StoreAccessDeniedException();
+        }
+
+        // 직원 조회
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(EmployeeNotFoundException::new);
+
+        // 직원이 해당 가게 소속인지 검증
+        if (!employee.getStore().getId().equals(storeId)) {
+            throw new EmployeeAccessDeniedException();
+        }
+
+        // DTO 반환
+        return new EmployeeInfoResponse(
+                employee.getId(),
+                employee.getEmail(),
+                employee.getName(),
+                employee.getPhone(),
+                store.getId(),
+                store.getName(),
+                employee.getPayPolicy().getJobTitle(),
+                employee.getPayPolicy().getHourlyWage()
+        );
+    }
+
 }
