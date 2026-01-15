@@ -184,6 +184,20 @@ Database - MySql 8.0
 - updatedAt: LocalDateTime
 ```
 
+### Store (가게)
+```
+- id: Long (PK)
+- name: String;
+- storePhone: String;
+- address: String;
+- weekStartDay: Integer
+- weeklyPayApplicable: Boolean
+- employer: Employer (Many to One)
+- employees: List<Employee> (One to Many)
+- createdAt: LocalDateTime    
+- updatedAt: LocalDateTime
+```
+
 ### Employee (직원)
 ```
 - id: Long (PK)
@@ -192,8 +206,8 @@ Database - MySql 8.0
 - role: Role (ROLE_EMPLOYEE)
 - name: String
 - phone: String
-- employer: Employer (고용주 참조 | ManyToOne)
-- PayPolicy: PayPolicy (직급/시급 | ManyToOne)
+- store: Store (ManyToOne)
+- payPolicy: PayPolicy (직급/시급 | ManyToOne)
 - createdAt: LocalDateTime
 - updatedAt: LocalDateTime
 ```
