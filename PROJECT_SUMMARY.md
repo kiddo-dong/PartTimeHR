@@ -55,6 +55,13 @@ PartTimeHR/
 │   ├── repository/
 │   ├── dto/
 │   └── mapper/
+├── store/           # 매장(가게) 관련
+│   ├── domain/
+│   ├── controller/
+│   ├── service/
+│   ├── repository/
+│   ├── dto/
+│   └── mapper/
 ├── employee/           # 직원 관련
 │   ├── domain/
 │   ├── controller/
@@ -172,10 +179,7 @@ Database - MySql 8.0
 - role: Role (ROLE_EMPLOYER)
 - name: String
 - phone: String
-- storeName: String (가게명)
-- weekStartDay: Integer (주간 시작 요일)
-- employees: List<Employee> (피고용주)
-- weeklyPayApplicable: boolean (주휴수당 지급 여부)
+- stores: List<Store> (One To Many 1:n 대응)
 - createdAt: LocalDateTime 
 - updatedAt: LocalDateTime
 ```
