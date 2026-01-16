@@ -8,13 +8,13 @@ import lombok.Getter;
 public class StoreCreateRequest {
 
     @NotBlank
-    private String name;
+    private String storeName;
 
     @NotBlank
     private String storePhone;
 
     @NotBlank
-    private String address;
+    private String storeAddress;
 
     @NotNull
     private Integer weekStartDay;

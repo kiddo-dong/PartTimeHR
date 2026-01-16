@@ -38,7 +38,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 // 세션은 formLogin용으로 허용
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/employers/signup", "/api/login", "/api/auth/verify", "/api/auth/resend").permitAll()
+                        .requestMatchers(
+                                "/api/employers/signup",
+                                "/api/login",
+                                "/api/email/verify",
+                                "/api/email/resend",
+                                "/api/employers/password/reset-request",
+                                "/api/employers/password/reset"
+                                ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

@@ -21,6 +21,7 @@ public class EmployerService {
     // 본인 조회(Employer)
     @Transactional(readOnly = true)
     public EmployerInfoResponse getMyInfo(Long employerId) {
+
         Employer employer = employerRepository.findById(employerId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 

@@ -52,9 +52,9 @@ public class EmailVerificationService {
                 + "  <div class='container'>"
                 + "    <h2>안녕하세요, " + employer.getName() + "님!</h2>"
                 + "    <p>회원가입을 완료하려면 아래 버튼을 클릭해주세요.</p>"
-                + "    <a class='btn' href='http://localhost:8080/api/auth/verify?token=" + ev.getToken() + "'>이메일 인증하기</a>"
+                + "    <a class='btn' href='http://localhost:8080/api/email/verify?token=" + ev.getToken() + "'>이메일 인증하기</a>"
                 + "    <p>버튼이 작동하지 않으면 아래 링크를 브라우저에 붙여넣으세요:<br>"
-                + "http://localhost:8080/api/auth/verify?token=" + ev.getToken() + "</p>"
+                + "http://localhost:8080/api/email/verify?token=" + ev.getToken() + "</p>"
                 + "  </div>"
                 + "</body>"
                 + "</html>";

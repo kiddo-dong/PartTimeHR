@@ -12,9 +12,9 @@ import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
-import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import com.example.PartTimeHR.store.repository.StoreRepository;
 import com.example.PartTimeHR.employer.domain.Role;
+import com.example.PartTimeHR.store.service.StoreAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,19 +31,18 @@ public class EmployeeService {
     private final PayPolicyRepository payPolicyRepository;
     private final EmployeeMapper employeeMapper;
     private final PasswordEncoder passwordEncoder;
+    private final StoreAccessService storeAccessService;
+    private final EmployeeAccessService employeeAccessService;
 
     // 직원 생성
     @Transactional
     public EmployeeInfoResponse createEmployee(CreateEmployeeRequest request, Long employerId) {
 
         // 매장 조회
-        Store store = storeRepository.findById(request.getStoreId())
-                .orElseThrow(StoreNotFoundException::new);
+        Store store = storeAccessService.findStore(employerId);
 
         // 사장 소유 확인
-        if (!store.getEmployer().getId().equals(employerId)) {
-            throw new StoreAccessDeniedException();
-        }
+        storeAccessService.getMyStore(store.getId(), employerId);
 
         // 비밀번호 확인
         if (!request.getPassword().equals(request.getPasswordConfirm())) {
@@ -102,29 +101,14 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public List<EmployeeInfoResponse> getAllEmployees(Long employerId, Long storeId) {
 
-        // 가게 존재 여부
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(StoreNotFoundException::new);
-
         // 조회 가능한 가게인지 여부
-        if (!store.getEmployer().getId().equals(employerId)) {
-            throw new StoreAccessDeniedException();
-        }
+        Store store = storeAccessService.getMyStore(storeId, employerId);
 
         List<Employee> employees = employeeRepository.findByStoreId(storeId);
 
-        return employees.stream()
-                .map(employee -> new EmployeeInfoResponse(
-                        employee.getId(),
-                        employee.getEmail(),
-                        employee.getName(),
-                        employee.getPhone(),
-                        store.getId(),
-                        store.getName(),
-                        employee.getPayPolicy().getJobTitle(),
-                        employee.getPayPolicy().getHourlyWage()
-                ))
-                .toList();
+        List<EmployeeInfoResponse> responses = employeeMapper.toInfoResponseList(employees);
+
+        return responses;
     }
 
     @Transactional(readOnly = true)
@@ -133,35 +117,14 @@ public class EmployeeService {
             Long storeId,
             Long employeeId
     ) {
-        // 가게 조회
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(StoreNotFoundException::new);
+        // 사장 소유 가게 검증 + 조회
+        Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 사장 소유 가게인지 검증
-        if (!store.getEmployer().getId().equals(employerId)) {
-            throw new StoreAccessDeniedException();
-        }
+        // 해당 가게 소속 직원 검증 + 조회
+        Employee employee = employeeAccessService.getEmployee(employeeId, store);
 
-        // 직원 조회
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(EmployeeNotFoundException::new);
-
-        // 직원이 해당 가게 소속인지 검증
-        if (!employee.getStore().getId().equals(storeId)) {
-            throw new EmployeeAccessDeniedException();
-        }
-
-        // DTO 반환
-        return new EmployeeInfoResponse(
-                employee.getId(),
-                employee.getEmail(),
-                employee.getName(),
-                employee.getPhone(),
-                store.getId(),
-                store.getName(),
-                employee.getPayPolicy().getJobTitle(),
-                employee.getPayPolicy().getHourlyWage()
-        );
+        EmployeeInfoResponse response = employeeMapper.toInfoResponse(employee);
+        return response;
     }
 
 }

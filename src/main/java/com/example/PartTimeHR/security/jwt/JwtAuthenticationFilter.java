@@ -34,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // FormLogin 방식 건너 뜀
+        // JWT 존재 시 FormLogin 방식 건너 뜀
         if (request.getRequestURI().equals("/api/login")) {
             filterChain.doFilter(request, response);
             return;

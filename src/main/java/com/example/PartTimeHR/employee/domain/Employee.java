@@ -3,11 +3,14 @@ package com.example.PartTimeHR.employee.domain;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
+import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.store.domain.Store;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 // 직원
 @Entity
@@ -35,7 +38,7 @@ public class Employee {
     @Column(nullable = false, length = 20)
     private String phone;
 
-    // 🔥 매장 소유
+    // 매장 소유
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
@@ -43,6 +46,9 @@ public class Employee {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pay_policy_id", nullable = false)
     private PayPolicy payPolicy;
+
+    @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY)
+    private List<Schedule> schedules = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

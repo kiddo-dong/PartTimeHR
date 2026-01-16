@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class StoreInfoResponse {
     private Long id;
-    private String name;
+    private String storeName;
     private String storePhone;
-    private String address;
+    private String storeAddress;
     private Integer weekStartDay;
     private Boolean weeklyPayApplicable;
     private LocalDateTime createdAt;

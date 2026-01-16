@@ -6,7 +6,6 @@ import com.example.PartTimeHR.employer.repository.EmployerRepository;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.dto.StoreCreateRequest;
 import com.example.PartTimeHR.store.dto.StoreInfoResponse;
-import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
 import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import com.example.PartTimeHR.store.mapper.StoreMapper;
 import com.example.PartTimeHR.store.repository.StoreRepository;
@@ -25,7 +24,9 @@ public class StoreServiceImpl implements StoreService {
     private final StoreRepository storeRepository;
     private final EmployerRepository employerRepository;
     private final StoreMapper storeMapper;
+    private final StoreAccessService storeAccessService;
 
+    // 새 매장 생성
     @Transactional
     @Override
     public StoreInfoResponse createStore(
@@ -36,9 +37,9 @@ public class StoreServiceImpl implements StoreService {
                 .orElseThrow(EmployerNotFoundException::new);
 
         Store store = Store.create(
-                request.getName(),
+                request.getStoreName(),
                 request.getStorePhone(),
-                request.getAddress(),
+                request.getStoreAddress(),
                 request.getWeekStartDay(),
                 request.getWeeklyPayApplicable(),
                 employer
@@ -49,6 +50,8 @@ public class StoreServiceImpl implements StoreService {
         return storeMapper.toInfoResponse(saved);
     }
 
+
+    // 매장 전체 조회
     @Transactional(readOnly = true)
     @Override
     public List<StoreInfoResponse> getMyStores(Long employerId) {
@@ -61,22 +64,16 @@ public class StoreServiceImpl implements StoreService {
         return storeMapper.toInfoResponseList(stores);
     }
 
+    // 특정 매장 조회
     @Transactional(readOnly = true)
     @Override
     public StoreInfoResponse getStore(Long storeId, Long employerId) {
 
         // 가게 존재 여부 확인
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(StoreNotFoundException::new);
+        Store store = storeAccessService.findStore(storeId);
 
         // 내 가게인지 검증
-        if (!store.getEmployer().getId().equals(employerId)) {
-            log.warn(
-                    "Store access denied. storeId={}, employerId={}",
-                    storeId, employerId
-            );
-            throw new StoreAccessDeniedException();
-        }
+        storeAccessService.getMyStore(storeId, employerId);
 
         //
         return storeMapper.toInfoResponse(store);

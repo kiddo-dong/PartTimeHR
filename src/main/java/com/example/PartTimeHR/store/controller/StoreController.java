@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("/api/store")
+@RequestMapping("/api/stores")
 @PreAuthorize("hasRole('EMPLOYER')")
 public class StoreController {
 
@@ -32,7 +32,7 @@ public class StoreController {
     private final PayPolicyRepository payPolicyRepository;
 
 
-    // ===== 새 가게 추가 =====
+    // ===== 새 매장 추가 =====
     @PostMapping
     public ResponseEntity<StoreInfoResponse> createStore(
             @Valid @RequestBody StoreCreateRequest request,
@@ -48,7 +48,8 @@ public class StoreController {
                 .body(response);
     }
 
-    // ====== 조회 ======
+    // ====== 매장 조회 ======
+    // 전체 조회
     @GetMapping("/all")
     public ResponseEntity<List<StoreInfoResponse>> myStores(
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -58,7 +59,7 @@ public class StoreController {
         return ResponseEntity.ok(responses);
     }
 
-    // 특정 storeId
+    // 특정 매장 조회
     @GetMapping("/{storeId}")
     public ResponseEntity<StoreInfoResponse> storeDetail(
             @PathVariable Long storeId,

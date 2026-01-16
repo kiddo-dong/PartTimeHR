@@ -32,7 +32,7 @@ public class EmployerSignupRequest {
     @Size(max = 20)
     private String phone;
 
-    /* ===== 초기 Store 정보 ===== */
+    /* ===== 초기 findStore 정보 ===== */
 
     @NotBlank
     @Size(max = 50)
@@ -44,9 +44,9 @@ public class EmployerSignupRequest {
 
     @NotBlank
     @Size(max = 100)
-    private String address;
+    private String storeAddress;
 
-    @NotBlank
+    @NotNull
     private Integer weekStartDay;
 
     @NotNull

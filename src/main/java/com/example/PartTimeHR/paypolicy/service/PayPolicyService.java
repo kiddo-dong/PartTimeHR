@@ -7,6 +7,7 @@ import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
 import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import com.example.PartTimeHR.store.repository.StoreRepository;
+import com.example.PartTimeHR.store.service.StoreAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,20 +18,18 @@ public class PayPolicyService {
 
     private final PayPolicyRepository payPolicyRepository;
     private final StoreRepository storeRepository;
+    private final StoreAccessService storeAccessService;
 
     @Transactional
     public void createPayPolicy(Long storeId, Long employerId, CreatePayPolicyRequest request) {
 
-        // 1️⃣ 가게 조회
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(StoreNotFoundException::new);
+        // 가게 조회
+        Store store = storeAccessService.findStore(storeId);
 
-        // 2️⃣ 사장 소유 확인
-        if (!store.getEmployer().getId().equals(employerId)) {
-            throw new StoreAccessDeniedException();
-        }
+        // 사장 소유 확인
+        storeAccessService.getMyStore(storeId, employerId);
 
-        // 3️⃣ 기본 정책 처리
+        // 기본 정책 처리
         if (request.getIsDefault()) {
             payPolicyRepository.findByStoreIdAndIsDefaultTrue(storeId)
                     .ifPresent(existing -> {
@@ -38,7 +37,7 @@ public class PayPolicyService {
                     });
         }
 
-        // 4️⃣ 정책 생성
+        // 정책 생성
         PayPolicy policy = PayPolicy.builder()
                 .store(store)
                 .jobTitle(request.getJobTitle())

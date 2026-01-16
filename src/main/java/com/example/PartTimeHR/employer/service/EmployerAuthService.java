@@ -54,17 +54,18 @@ public class EmployerAuthService {
                 .build();
         employerRepository.save(employer);
 
-        // 2. Store 생성
+        // 2. findStore 생성
         Store store = Store.builder()
-                .name(request.getStoreName())
+                .storeName(request.getStoreName())
                 .storePhone(request.getStorePhone())
-                .weekStartDay(1)
+                .storeAddress(request.getStoreAddress())
+                .weekStartDay(request.getWeekStartDay())
                 .weeklyPayApplicable(request.getWeeklyPayApplicable())
                 .employer(employer)
                 .build();
         storeRepository.save(store);
 
-        // 3. 기본 PayPolicy 생성 (Store 기준)
+        // 3. 기본 PayPolicy 생성 (findStore 기준)
         PayPolicy defaultPolicy = PayPolicy.builder()
                 .store(store)
                 .jobTitle("알바생")
@@ -129,7 +130,7 @@ public class EmployerAuthService {
 
     // 계정 생성용 이메일 인증 템플릿
     private String createVerificationEmailHtml(String name, String token) {
-        String verifyLink = "http://localhost:8080/api/auth/verify?token=" + token;
+        String verifyLink = "http://localhost:8080/api/email/verify?token=" + token;
 
         return "<!DOCTYPE html>"
                 + "<html lang='ko'>"

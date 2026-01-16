@@ -54,6 +54,7 @@ PartTimeHR/
 │   ├── service/
 │   ├── repository/
 │   ├── dto/
+│   ├── exception/
 │   └── mapper/
 ├── store/           # 매장(가게) 관련
 │   ├── domain/
@@ -61,12 +62,14 @@ PartTimeHR/
 │   ├── service/
 │   ├── repository/
 │   ├── dto/
+│   ├── exception/
 │   └── mapper/
 ├── employee/           # 직원 관련
 │   ├── domain/
 │   ├── controller/
 │   ├── service/
 │   ├── repository/
+│   ├── exception/
 │   ├── dto/
 │   └── mapper/
 ├── paypolicy/          # 사장님 정책 관련
@@ -75,18 +78,8 @@ PartTimeHR/
 │   ├── service/
 │   ├── repository/
 │   └── dto/
-├── workrecord/         # 근태 관리
-│   ├── domain/
-│   ├── controller/
-│   ├── service/
-│   ├── repository/
-│   ├── dto/
-│   ├── mapper/
-│   └── exception/
-└── statistics/         # 통계 관리
-    ├── controller/
-    ├── service/
-    └── dto/
+├── 추가 예정
+
 ```
 
 ---
@@ -128,15 +121,16 @@ PartTimeHR/
 - 비밀번호 리셋
 - 로그인 - JWT 토큰 발급
 
-#### 직원 관리
-- 직원 등록 - 직원은 스스로 계정 생성이 불가능 -> 사장님이 등록해줘야 계정(Employee) 사용 가능
-- 직원 정보 수정/제거
-- 직원 목록 조회 (단일/전체/조건별)
-- 직원 근태 관리 - 출근/휴게/퇴근(생성/조회/수정/삭제 가능)
-
 #### 매장 관리
-- 주간별 통계 (직원) -> 추후 주휴 수당 개선
-- 월별 통계 (직원) -> 추후 개선 예정
+- 매장 생성 기능 (여러 매장을 가질 수 있음 1:N)
+- 수정
+- 삭제
+
+#### 직원 관리
+- 매장별 직원 등록 - 직원은 스스로 계정 생성이 불가능 -> 사장님이 등록해줘야 계정(Employee) 사용 가능
+- 매장별 직원 정보 수정/제거
+- 매장별 직원 목록 조회 (단일/전체/조건별)
+- 매장별 직원 근태 관리 - 출근/휴게/퇴근(생성/조회/수정/삭제 가능) 
 
 ### 2. Employee (직원) 기능
 #### 기본 기능
