@@ -3,6 +3,8 @@ package com.example.PartTimeHR.store.service;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.exception.EmployerNotFoundException;
 import com.example.PartTimeHR.employer.repository.EmployerRepository;
+import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
+import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.dto.StoreCreateRequest;
 import com.example.PartTimeHR.store.dto.StoreInfoResponse;
@@ -25,6 +27,7 @@ public class StoreServiceImpl implements StoreService {
     private final EmployerRepository employerRepository;
     private final StoreMapper storeMapper;
     private final StoreAccessService storeAccessService;
+    private final PayPolicyRepository payPolicyRepository;
 
     // 새 매장 생성
     @Transactional
@@ -44,6 +47,16 @@ public class StoreServiceImpl implements StoreService {
                 request.getWeeklyPayApplicable(),
                 employer
         );
+        storeRepository.save(store);
+
+        PayPolicy defaultPolicy = PayPolicy.builder()
+                .store(store)
+                .jobTitle("알바생")
+                .hourlyWage(10320)
+                .isDefault(true)
+                .active(true)
+                .build();
+        payPolicyRepository.save(defaultPolicy);
 
         Store saved = storeRepository.save(store);
 
