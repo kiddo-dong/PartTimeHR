@@ -2,9 +2,11 @@ package com.example.PartTimeHR.employee.service;
 
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.exception.EmployeeAccessDeniedException;
+import com.example.PartTimeHR.employee.exception.EmployeeEmailDuplicatesException;
 import com.example.PartTimeHR.employee.exception.EmployeeNotFoundException;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.store.domain.Store;
+import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,4 +29,11 @@ public class EmployeeAccessService {
                 .findById(employeeId)
                 .orElseThrow(EmployeeNotFoundException::new);
     }
+
+    public void checkEmployeeEmailDuplicates(Long storeId, String email) {
+        if(employeeRepository.existsByStore_IdAndEmail(storeId, email)){
+            throw new EmployeeEmailDuplicatesException();
+        }
+    }
+
 }

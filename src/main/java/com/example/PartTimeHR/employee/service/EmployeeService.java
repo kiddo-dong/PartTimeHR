@@ -3,8 +3,6 @@ package com.example.PartTimeHR.employee.service;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.dto.CreateEmployeeRequest;
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
-import com.example.PartTimeHR.employee.exception.EmployeeAccessDeniedException;
-import com.example.PartTimeHR.employee.exception.EmployeeNotFoundException;
 import com.example.PartTimeHR.employee.exception.PasswordMismatchException;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
@@ -12,7 +10,6 @@ import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
-import com.example.PartTimeHR.store.repository.StoreRepository;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.store.service.StoreAccessService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +24,6 @@ import java.util.List;
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final StoreRepository storeRepository;
     private final PayPolicyRepository payPolicyRepository;
     private final EmployeeMapper employeeMapper;
     private final PasswordEncoder passwordEncoder;
@@ -36,13 +32,16 @@ public class EmployeeService {
 
     // 직원 생성
     @Transactional
-    public EmployeeInfoResponse createEmployee(CreateEmployeeRequest request, Long employerId) {
+    public EmployeeInfoResponse createEmployee(Long storeId, CreateEmployeeRequest request, Long employerId) {
 
         // 매장 조회
-        Store store = storeAccessService.findStore(employerId);
+        storeAccessService.findStore(employerId);
 
         // 사장 소유 확인
-        storeAccessService.getMyStore(store.getId(), employerId);
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // 해당 매장에 직원의 이메일이 중복인지 확인
+        employeeAccessService.checkEmployeeEmailDuplicates(store.getId(), request.getEmail());
 
         // 비밀번호 확인
         if (!request.getPassword().equals(request.getPasswordConfirm())) {
@@ -73,29 +72,22 @@ public class EmployeeService {
                 .phone(request.getPhone())
                 .store(store)
                 .payPolicy(policy)
+                .email(request.getEmail())
+                .password(encodedPassword)
+                .name(request.getName())
+                .phone(request.getPhone())
+                .store(store)
+                .payPolicy(policy)
                 .role(Role.ROLE_EMPLOYEE)
                 .build();
 
         Employee saved = employeeRepository.save(employee);
 
-        // DTO 변환
         EmployeeInfoResponse response = employeeMapper.toInfoResponse(saved);
 
         // 응답
-        response = new EmployeeInfoResponse(
-                response.getId(),
-                response.getEmail(),
-                response.getName(),
-                response.getPhone(),
-                response.getStoreId(),
-                response.getStoreName(),
-                policy.getJobTitle(),
-                policy.getHourlyWage()
-        );
-
         return response;
     }
-
 
     // 전체 직원 조회
     @Transactional(readOnly = true)
@@ -105,7 +97,6 @@ public class EmployeeService {
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
         List<Employee> employees = employeeRepository.findByStoreId(storeId);
-
         List<EmployeeInfoResponse> responses = employeeMapper.toInfoResponseList(employees);
 
         return responses;

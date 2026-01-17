@@ -4,6 +4,8 @@ import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
 import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import com.example.PartTimeHR.store.repository.StoreRepository;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

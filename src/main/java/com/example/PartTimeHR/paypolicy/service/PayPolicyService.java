@@ -4,8 +4,6 @@ import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.dto.CreatePayPolicyRequest;
 import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
 import com.example.PartTimeHR.store.domain.Store;
-import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
-import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import com.example.PartTimeHR.store.repository.StoreRepository;
 import com.example.PartTimeHR.store.service.StoreAccessService;
 import lombok.RequiredArgsConstructor;
@@ -29,20 +27,12 @@ public class PayPolicyService {
         // 사장 소유 확인
         storeAccessService.getMyStore(storeId, employerId);
 
-        // 기본 정책 처리
-        if (request.getIsDefault()) {
-            payPolicyRepository.findByStoreIdAndIsDefaultTrue(storeId)
-                    .ifPresent(existing -> {
-                        existing.setDefault(false);
-                    });
-        }
-
         // 정책 생성
         PayPolicy policy = PayPolicy.builder()
                 .store(store)
                 .jobTitle(request.getJobTitle())
                 .hourlyWage(request.getHourlyWage())
-                .isDefault(request.getIsDefault())
+                .isDefault(false)
                 .active(true)
                 .build();
 

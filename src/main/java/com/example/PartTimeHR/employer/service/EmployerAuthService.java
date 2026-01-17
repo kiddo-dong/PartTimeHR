@@ -56,9 +56,9 @@ public class EmployerAuthService {
 
         // 2. findStore 생성
         Store store = Store.builder()
-                .storeName(request.getStoreName())
-                .storePhone(request.getStorePhone())
-                .storeAddress(request.getStoreAddress())
+                .name(request.getStoreName())
+                .phone(request.getStorePhone())
+                .address(request.getStoreAddress())
                 .weekStartDay(request.getWeekStartDay())
                 .weeklyPayApplicable(request.getWeeklyPayApplicable())
                 .employer(employer)

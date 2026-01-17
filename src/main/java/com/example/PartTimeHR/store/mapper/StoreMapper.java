@@ -11,6 +11,9 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface StoreMapper {
 
+    @Mapping(source = "name", target = "storeName")
+    @Mapping(source = "phone", target = "storePhone")
+    @Mapping(source = "address", target = "storeAddress")
     StoreInfoResponse toInfoResponse(Store store);
 
     List<StoreInfoResponse> toInfoResponseList(List<Store> stores);

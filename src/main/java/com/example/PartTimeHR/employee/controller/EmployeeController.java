@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/employees")
+@RequestMapping("/api/employees/{storeId}")
 @PreAuthorize("hasRole('EMPLOYER')")
 public class EmployeeController {
 
@@ -25,18 +25,18 @@ public class EmployeeController {
     // 직원 생성
     @PostMapping
     public ResponseEntity<EmployeeInfoResponse> createEmployee(
-            @Valid @RequestBody CreateEmployeeRequest request,
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId,
+            @Valid @RequestBody CreateEmployeeRequest request
     ) {
 
-        EmployeeInfoResponse response =
-                employeeService.createEmployee(request, userDetails.getId());
+        EmployeeInfoResponse response = employeeService.createEmployee(storeId, request, userDetails.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // 전체 직원 조회
-    @GetMapping("/{storeId}/all")
+    @GetMapping("/all")
     public ResponseEntity<List<EmployeeInfoResponse>> getAllEmployees(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long storeId
@@ -46,7 +46,7 @@ public class EmployeeController {
     }
 
     // 직원 조회
-    @GetMapping("/{storeId}")
+    @GetMapping
     public ResponseEntity<EmployeeInfoResponse> getEmployee(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long storeId,

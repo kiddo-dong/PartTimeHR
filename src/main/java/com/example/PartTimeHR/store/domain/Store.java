@@ -21,12 +21,12 @@ public class Store {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "store_name", nullable = false)
-    private String storeName;                // 기존 storeName
-    @Column(name = "store_phone")
-    private String storePhone;  // 가게 전화번호
-    @Column(name = "store_address")
-    private String storeAddress;
+    @Column(name = "name", nullable = false)
+    private String name;                // 기존 name
+    @Column(name = "phone")
+    private String phone;  // 가게 전화번호
+    @Column(name = "address")
+    private String address;
     @Column(name = "week_start_day", nullable = false)
     private Integer weekStartDay;
     @Column(name = "weekly_pay_applicable", nullable = false)
@@ -70,9 +70,9 @@ public class Store {
             Employer employer
     ) {
         Store store = new Store();
-        store.storeName = storeName;
-        store.storePhone = storePhone;
-        store.storeAddress = storeAddress;
+        store.name = storeName;
+        store.phone = storePhone;
+        store.address = storeAddress;
         store.weekStartDay = weekStartDay;
         store.weeklyPayApplicable = weeklyPayApplicable;
         store.employer = employer;

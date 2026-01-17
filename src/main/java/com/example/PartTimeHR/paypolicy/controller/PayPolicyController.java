@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/store/{storeId}/paypolicies")
+@RequestMapping("/api/stores/{storeId}/paypolicies")
 @PreAuthorize("hasRole('EMPLOYER')")
 public class PayPolicyController {
 
@@ -20,8 +20,8 @@ public class PayPolicyController {
 
     @PostMapping
     public ResponseEntity<Void> createPayPolicy(
-            @PathVariable Long storeId,
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId,
             @Valid @RequestBody CreatePayPolicyRequest request
     ) {
         payPolicyService.createPayPolicy(

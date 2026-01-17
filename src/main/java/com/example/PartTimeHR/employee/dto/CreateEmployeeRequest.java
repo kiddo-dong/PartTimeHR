@@ -31,8 +31,5 @@ public class CreateEmployeeRequest {
     @Size(max = 20)
     private String phone;
 
-    @NotNull
-    private Long storeId;
-
     private Long payPolicyId; // 선택적, null이면 기본 정책 사용
 }

@@ -15,4 +15,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     // 특정 직원 + 가게 검증
     Optional<Employee> findByIdAndStore(Long id, Store store);
+
+    // 매장 소속 직원 이메일 중복 확인
+    boolean existsByStore_IdAndEmail(Long storeId, String email);
 }
