@@ -4,6 +4,7 @@ import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.exception.EmployeeAccessDeniedException;
 import com.example.PartTimeHR.employee.exception.EmployeeNotFoundException;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
+import com.example.PartTimeHR.employee.service.EmployeeAccessService;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.dto.CreateScheduleRequest;
 import com.example.PartTimeHR.schedule.dto.ScheduleResponse;
@@ -25,6 +26,7 @@ public class ScheduleService {
 
     private final StoreAccessService storeAccessService;
     private final EmployeeRepository employeeRepository;
+    private final EmployeeAccessService employeeAccessService;
     private final ScheduleRepository scheduleRepository;
 
     private final ScheduleMapper mapper = ScheduleMapper.INSTANCE;
@@ -61,12 +63,8 @@ public class ScheduleService {
 
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(EmployeeNotFoundException::new);
+        employeeAccessService.getEmployee(employeeId, store);
 
-        if (!employee.getStore().getId().equals(store.getId())) {
-            throw new EmployeeAccessDeniedException();
-        }
 
         return scheduleRepository.findByEmployeeId(employeeId)
                 .stream()
