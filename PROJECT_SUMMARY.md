@@ -4,7 +4,7 @@
 
 **프로젝트명**: PartTimeHR
 
-**목적**: 사장님(자영업자)을 위한 알바 관리 웹 애플리케이션
+**목적**: 사장님(자영업자)을 위한 직원/매장 관리 웹 애플리케이션
 
 ---
 
@@ -13,7 +13,7 @@
 - **Spring Boot**: 4.0.0
 - **Java**: 21
 - **Spring Security**: 7.0.0
-- **Spring Data JPA**: 4.0.0
+- **Spring Data JPA**: 4.0.0 (Native SQL 병행)
 
 ### Database
 - **MySQL**: 8.0.44
@@ -24,6 +24,7 @@
 - **JWT**: jjwt 0.13.0
 - **SMTP**: Spring-mail
 - **BCrypt**: Spring Security 내장
+
 ### Util
 - **Lombok**: 1.18.42
 - **MapStruct**: 1.6.3 (Entity ↔ DTO 변환)
@@ -182,7 +183,7 @@ Database - MySql 8.0
 ```
 - id: Long (PK)
 - name: String;
-- storePhone: String;
+- phone: String;
 - address: String;
 - weekStartDay: Integer
 - weeklyPayApplicable: Boolean
@@ -197,15 +198,23 @@ Database - MySql 8.0
 - id: Long (PK)
 - email: String (unique, 로그인용)
 - password: String (암호화)
-- role: Role (ROLE_EMPLOYEE)
 - name: String
 - phone: String
 - store: Store (ManyToOne)
 - payPolicy: PayPolicy (직급/시급 | ManyToOne)
+- role: Role (ROLE_EMPLOYEE)
 - createdAt: LocalDateTime
 - updatedAt: LocalDateTime
 ```
-
+### PayPolicy (직급/시급 정책)
+```
+- id : Long (PK)
+- store : Store (Many To One)
+- jobTitle : String
+- hourlyWage : int
+- isDefault : boolean
+- createdAt : LocalDateTime
+```
 ---
 
 ## 8. API 명세
@@ -238,12 +247,9 @@ Database - MySql 8.0
 ### 1. Security 설정
 - CSRF 비활성화 (JWT 사용)
 - Stateless 세션 (JWT 기반)
-- `@PreAuthorize` 어노테이션
+- `@PreAuthorize` 어노테이션으로 api 권한 제어
 - SecurityConfig에서 URL 기반 접근 제어
 - JWT 토큰에 역할 정보 포함
-- `/api/employers/signup`, `/api/employers/login` - 인증 불필요
-- `/api/employees/signup`, `/api/employees/login` - 인증 불필요
-- 나머지 엔드포인트 - 인증 필요
 
 ### 2. MapStruct 활용
 - Entity ↔ DTO 자동 변환
@@ -260,34 +266,12 @@ Database - MySql 8.0
 ## 10. 데이터베이스 스키마
 
 ### employer 테이블
-```sql
-CREATE TABLE employer (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('ROLE_EMPLOYER', 'ROLE_EMPLOYEE', 'ROLE_ADMIN') NOT NULL,
-    employer_name VARCHAR(30) NOT NULL,
-    employer_phone VARCHAR(20) NOT NULL,
-    store_name VARCHAR(50) NOT NULL,
-    created_at DATETIME(6) NOT NULL,
-    updated_at DATETIME(6)
-);
+```
+
 ```
 
 ### employee 테이블
-```sql
-CREATE TABLE employee (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('ROLE_EMPLOYER', 'ROLE_EMPLOYEE', 'ROLE_ADMIN') NOT NULL,
-    employee_name VARCHAR(30) NOT NULL,
-    employee_phone VARCHAR(20) NOT NULL,
-    employer_id BIGINT NOT NULL,
-    created_at DATETIME(6) NOT NULL,
-    updated_at DATETIME(6),
-    FOREIGN KEY (employer_id) REFERENCES employer(id)
-);
+```
 ```
 
 ---
@@ -295,13 +279,6 @@ CREATE TABLE employee (
 ## 11. 테스트 상태
 
 ### 완료된 테스트
-- ✅ Employer 회원가입/로그인
-- ✅ JWT 토큰 발급 및 검증
-- ✅ 인증된 엔드포인트 접근
-- ✅ 역할 기반 접근 제어
-- ✅ Employee 회원가입/로그인
-- ✅ 사장님이 직원 등록
-- ✅ 사장님이 직원 목록 조회
 
 ### 테스트 도구
 - Spring Test
@@ -310,10 +287,6 @@ CREATE TABLE employee (
 ---
 
 ## 12. 추후 추가 기능
-
-### 추가 기능
-1. 스케줄 추가 기능
-   - 간편성 고려
    
 2. 알림 기능
    - 스케줄 변경 알림
@@ -323,14 +296,12 @@ CREATE TABLE employee (
 1. Refresh Token 구현
 2. 비밀번호 변경 기능
 3. 로그아웃 기능 (토큰 블랙리스트)
-4. 이메일 인증
-5. 프로필 수정 기능
 
 ---
 
 ## 13. 개발 이슈
 
-1. Contoller기반 Login -> SpringSecurity FormLogin 변경
+1. Contoller Login기반에서 조회 비용 증가-> SpringSecurity FormLogin 변경
 2. lombok & MapStruct 병행 사용으로 인한 Runtime Error -> 의존성 추가
 3. JPA의 DB조회 비용 증가 -> 
 ---
