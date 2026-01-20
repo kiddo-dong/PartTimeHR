@@ -5,6 +5,7 @@ import com.example.PartTimeHR.schedule.exception.InvalidScheduleException;
 import com.example.PartTimeHR.schedule.repository.ScheduleRepository;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +16,7 @@ import java.time.LocalTime;
 // 예외 처리 Service Logic
 @Service
 @Transactional
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ScheduleAccessService {
 
     public ScheduleRepository scheduleRepository;

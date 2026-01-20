@@ -10,6 +10,7 @@ import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+// 나중에 PK 기준 조회 보안 향 (PK 위조로 검색 가능)
 @Service
 @RequiredArgsConstructor
 public class EmployeeAccessService {

@@ -102,6 +102,7 @@ public class EmployeeService {
         return responses;
     }
 
+    // 직원 정보 조회
     @Transactional(readOnly = true)
     public EmployeeInfoResponse getEmployee(
             Long employerId,
