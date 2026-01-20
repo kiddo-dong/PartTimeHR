@@ -4,10 +4,10 @@ import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.store.domain.Store;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import static jakarta.persistence.FetchType.LAZY;
 
 @Entity
 @Table(name = "schedule")
@@ -17,22 +17,47 @@ import static jakarta.persistence.FetchType.LAZY;
 @Builder
 public class Schedule {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = LAZY)
+    // 소속 매장
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    @ManyToOne(fetch = LAZY)
+    // 근무 직원
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
+    // 근무 날짜
+    @Column(nullable = false)
     private LocalDate workDate;
 
+    // 근무 시작 / 종료
+    @Column(nullable = false)
     private LocalTime startTime;
+
+    @Column(nullable = false)
     private LocalTime endTime;
 
-    @Enumerated(EnumType.STRING)
-    private ScheduleStatus status; // PLANNED, CANCELED
+    // 확정 여부 (사장이 승인했는지)
+    @Column(nullable = false)
+    private boolean confirmed;
 
+    // 생성 / 수정 시간
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.confirmed = false;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

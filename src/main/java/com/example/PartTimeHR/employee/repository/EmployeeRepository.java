@@ -1,9 +1,11 @@
 package com.example.PartTimeHR.employee.repository;
 
 import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.store.domain.Store;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
