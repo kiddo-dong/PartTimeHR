@@ -14,6 +14,7 @@
 - **Java**: 21
 - **Spring Security**: 7.0.0
 - **Spring Data JPA**: 4.0.0 (Native SQL 병행)
+- **Spring Ai** : (추 후 예정)
 
 ### Database
 - **MySQL**: 8.0.44
@@ -29,6 +30,9 @@
 - **Lombok**: 1.18.42
 - **MapStruct**: 1.6.3 (Entity ↔ DTO 변환)
 - **Validation**: Jakarta Validation 3.1.1
+
+### AI
+- **OpenAI(Chat GPT)** : gpt-4o
 ---
 
 ## 3. 프로젝트 구조
@@ -141,9 +145,15 @@ PartTimeHR/
 - 매장별 직원 목록 조회 (단일/전체/조건별)
 - 매장별 직원 근태 관리 - 출근/휴게/퇴근(생성/조회/수정/삭제 가능) 
 
+#### 매장 관리
+- 직원 스케줄 관리(생성/조회/수정/제거)
+- 직원 근태 관리(출근/휴게/퇴근/결근 여부)
+- 직원 통계(일간/주간/월간)
+
 ### 2. Employee (직원) 기능
 #### 기본 기능
 - 조회
+- 스케줄 조회
 
 #### 인증/인가
 - 로그인 - JWT 토큰 발급

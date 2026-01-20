@@ -21,12 +21,26 @@ import java.util.List;
 public class EmployeeScheduleController {
     private final EmployeeScheduleService employeeScheduleService;
 
+    // 당일 스케줄 조회
     @GetMapping("/today")
     public ResponseEntity<List<ScheduleResponse>> getToday(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(defaultValue = "0") int offset
     ){
         List<ScheduleResponse> responses = employeeScheduleService.getTodaySchedule(userDetails.getId(), offset);
+        return ResponseEntity.ok(responses);
+    }
+
+    // 기간별 스케줄 조회
+    @GetMapping("/period")
+    public ResponseEntity<List<ScheduleResponse>> getSchedulesByPeriod(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam("startDate") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam("endDate") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate
+    ) {
+        List<ScheduleResponse> responses = employeeScheduleService.getSchedulesByPeriod(
+                userDetails.getId(), startDate, endDate
+        );
         return ResponseEntity.ok(responses);
     }
 

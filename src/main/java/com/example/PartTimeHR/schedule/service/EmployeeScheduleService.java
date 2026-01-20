@@ -3,6 +3,7 @@ package com.example.PartTimeHR.schedule.service;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
 import com.example.PartTimeHR.employee.service.EmployeeAccessService;
+import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.dto.ScheduleResponse;
 import com.example.PartTimeHR.schedule.mapper.ScheduleMapper;
 import com.example.PartTimeHR.schedule.repository.ScheduleRepository;
@@ -40,6 +41,16 @@ public class EmployeeScheduleService {
         return scheduleRepository
                 .findByEmployeeAndWorkDate(employee, today)
                 .stream()
+                .map(scheduleMapper::toResponse)
+                .toList();
+    }
+
+    public List<ScheduleResponse> getSchedulesByPeriod(Long employeeId, LocalDate startDate, LocalDate endDate) {
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+
+        List<Schedule> schedules = scheduleRepository.findByEmployeeAndWorkDateBetween(employee, startDate, endDate);
+
+        return schedules.stream()
                 .map(scheduleMapper::toResponse)
                 .toList();
     }
