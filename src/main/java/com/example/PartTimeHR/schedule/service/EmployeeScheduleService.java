@@ -7,6 +7,7 @@ import com.example.PartTimeHR.schedule.dto.ScheduleResponse;
 import com.example.PartTimeHR.schedule.mapper.ScheduleMapper;
 import com.example.PartTimeHR.schedule.repository.ScheduleRepository;
 import com.example.PartTimeHR.schedule.util.ScheduleDateCalculator;
+import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.service.StoreAccessService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,21 @@ public class EmployeeScheduleService {
     public final StoreAccessService storeAccessService;
     public final EmployeeAccessService employeeAccessService;
 
-    // 직원의
+    // 직원의 일별 스케줄 조회
+    @Transactional(readOnly = true)
+    public List<ScheduleResponse> getTodaySchedule(Long employeeId, int offset){
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+
+        Store store = employee.getStore();
+
+        LocalDate today = LocalDate.now();
+
+        return scheduleRepository
+                .findByEmployeeAndWorkDate(employee, today)
+                .stream()
+                .map(scheduleMapper::toResponse)
+                .toList();
+    }
 
     // 직원의 주간 스케줄 조회
     @Transactional(readOnly = true)

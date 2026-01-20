@@ -21,6 +21,16 @@ import java.util.List;
 public class EmployeeScheduleController {
     private final EmployeeScheduleService employeeScheduleService;
 
+    @GetMapping("/today")
+    public ResponseEntity<List<ScheduleResponse>> getToday(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(defaultValue = "0") int offset
+    ){
+        List<ScheduleResponse> responses = employeeScheduleService.getTodaySchedule(userDetails.getId(), offset);
+        return ResponseEntity.ok(responses);
+    }
+
+    // 주간별 스케줄 조회
     @GetMapping("/week")
     public ResponseEntity<List<ScheduleResponse>> getWeekSchedules(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -31,6 +41,7 @@ public class EmployeeScheduleController {
         return ResponseEntity.ok(responses);
     }
 
+    //월별 스케줄 조회
     @GetMapping("/month")
     public ResponseEntity<List<ScheduleResponse>> getMonthSchedules(
             @AuthenticationPrincipal CustomUserDetails userDetails,

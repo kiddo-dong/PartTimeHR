@@ -44,4 +44,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             LocalDate startDate,
             LocalDate endDate
     );
+
+    List<Schedule> findByEmployeeAndWorkDate(Employee employee, LocalDate workDate);
+
 }

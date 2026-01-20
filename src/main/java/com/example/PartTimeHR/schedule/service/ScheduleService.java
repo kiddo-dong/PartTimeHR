@@ -1,6 +1,7 @@
 package com.example.PartTimeHR.schedule.service;
 
 import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.employee.exception.EmployeeNotFoundException;
 import com.example.PartTimeHR.employee.service.EmployeeAccessService;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.dto.ScheduleCreateRequest;
@@ -10,6 +11,8 @@ import com.example.PartTimeHR.schedule.mapper.ScheduleMapper;
 import com.example.PartTimeHR.schedule.repository.ScheduleRepository;
 import com.example.PartTimeHR.schedule.util.ScheduleDateCalculator;
 import com.example.PartTimeHR.store.domain.Store;
+import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
+import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import com.example.PartTimeHR.store.service.StoreAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -67,7 +70,8 @@ public class ScheduleService {
         scheduleRepository.save(schedule);
     }
 
-    // 날짜별 조회
+    // ===== 전체 직원 조회(단일/기간/주간/월간) =====
+    // 직원 전체 단일 날짜 조회
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getSchedules(
             Long storeId,
@@ -84,7 +88,21 @@ public class ScheduleService {
                 .toList();
     }
 
-    // 주간 조회
+    // 직원 전체 기간 조회
+    public List<ScheduleResponse> findStoreSchedulesByPeriod(
+            Long employerId, Long storeId, LocalDate startDate, LocalDate endDate
+    ) {
+        // StoreAccessService로 검증 + Store 객체 가져오기
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+
+        return scheduleRepository.findByStoreAndWorkDateBetween(store, startDate, endDate)
+                .stream()
+                .map(scheduleMapper::toResponse)
+                .toList();
+    }
+
+    // 직원 전체 주간 조회
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getWeekSchedules(
             Long storeId,
@@ -114,9 +132,7 @@ public class ScheduleService {
                 .toList();
     }
 
-
-
-    // 월간 조회
+    // 직원 전체 월간 조회
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getMonthSchedules(
             Long storeId,
@@ -136,6 +152,46 @@ public class ScheduleService {
                         monthStart,
                         monthEnd
                 )
+                .stream()
+                .map(scheduleMapper::toResponse)
+                .toList();
+    }
+
+
+    // ===== 직원별 조회(단일/기간/주간/월간) =====
+    // 직원별 단일 날짜 조회
+    public List<ScheduleResponse> findEmployeeSchedulesByDate(
+            Long employerId, Long storeId, Long employeeId, LocalDate date
+    ) {
+        // 1. 매장 접근 권한 체크
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // 2. Employee 로딩
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+
+        // 4. 단일 날짜 스케줄 조회
+
+
+        return scheduleRepository.findByEmployeeAndWorkDate(employee, date)
+                .stream()
+                .map(scheduleMapper::toResponse)
+                .toList();
+    }
+
+    // 직원별 기간 조회
+    public List<ScheduleResponse> findEmployeeSchedulesByPeriod(
+            Long employerId, Long employeeId, Long storeId, LocalDate startDate, LocalDate endDate
+    ) {
+        // 소속 매장 접근 권한 체크
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // Repository에서 Employee 객체 가져오기
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+
+        employeeAccessService.getEmployee(employee.getId(), store);
+
+
+        return scheduleRepository.findByEmployeeAndWorkDateBetween(employee, startDate, endDate)
                 .stream()
                 .map(scheduleMapper::toResponse)
                 .toList();

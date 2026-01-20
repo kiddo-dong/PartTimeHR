@@ -19,7 +19,7 @@ public class EmployeeMeController {
     private final EmployeeMeService employeeMeService;
 
     // 직원 정보 조회
-    @GetMapping
+    @GetMapping("/me")
     public ResponseEntity<EmployeeInfoResponse> getMe(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ){

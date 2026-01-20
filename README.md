@@ -79,8 +79,16 @@ PartTimeHR/
 │   ├── service/
 │   ├── repository/
 │   └── dto/
+├── Schedule/
+│   ├── domain/
+│   ├── controller/
+│   ├── service/
+│   ├── repository/
+│   ├── exception/
+│   ├── dto/
+│   ├── util/
+│   └── mapper/
 ├── 추가 예정
-
 ```
 
 ---
