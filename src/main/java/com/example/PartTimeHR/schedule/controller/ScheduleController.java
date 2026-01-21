@@ -37,7 +37,6 @@ public class ScheduleController {
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
-
     // ===== 전체 직원 조회(단일/기간/주간/월간) =====
     // 전체 날짜별 스케줄 조회
     @GetMapping("/date")
@@ -52,7 +51,7 @@ public class ScheduleController {
     }
 
     // 전체 기간별 스케줄 조회
-    @GetMapping("period")
+    @GetMapping("/period")
     public List<ScheduleResponse> getStoreSchedules(
             @PathVariable Long storeId,
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -98,7 +97,7 @@ public class ScheduleController {
 
     // ===== 직원별 조회(단일/기간/주간/월간) =====
     // 직원별 단일 스케줄 조회
-    @GetMapping("employees/{employeeId}/single")
+    @GetMapping("employees/{employeeId}/date")
     public List<ScheduleResponse> getEmployeeScheduleByDate(
             @PathVariable Long storeId,
             @PathVariable Long employeeId,

@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.store.service;
 
+import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
 import com.example.PartTimeHR.store.exception.StoreNotFoundException;
@@ -27,5 +28,11 @@ public class StoreAccessService {
         return storeRepository
                 .findByIdAndEmployerId(storeId, employerId)
                 .orElseThrow(StoreAccessDeniedException::new);
+    }
+
+    public void validateEmployeeInStore(Store store, Employee employee) {
+        if (!employee.getStore().getId().equals(store.getId())) {
+            throw new IllegalStateException("해당 매장의 직원이 아닙니다.");
+        }
     }
 }

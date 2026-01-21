@@ -71,6 +71,7 @@ public class ScheduleService {
     }
 
     // ===== 전체 직원 조회(단일/기간/주간/월간) =====
+
     // 직원 전체 단일 날짜 조회
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getSchedules(
@@ -82,10 +83,11 @@ public class ScheduleService {
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
         return scheduleRepository
-                .findByStoreAndWorkDate(storeId, workDate)
+                .findByStoreAndWorkDate(store, workDate)
                 .stream()
                 .map(scheduleMapper::toResponse)
                 .toList();
+
     }
 
     // 직원 전체 기간 조회
@@ -170,12 +172,12 @@ public class ScheduleService {
         Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
 
         // 4. 단일 날짜 스케줄 조회
-
-
-        return scheduleRepository.findByEmployeeAndWorkDate(employee, date)
+        return scheduleRepository
+                .findByEmployeeAndStoreAndWorkDate(employee, store, date)
                 .stream()
                 .map(scheduleMapper::toResponse)
                 .toList();
+
     }
 
     // 직원별 기간 조회

@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.schedule.repository;
 
-import com.example.PartTimeHR.employee.domain.Employee;
+import  com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.store.domain.Store;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,7 +13,7 @@ import java.util.List;
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     // 매장 + 날짜별 조회
-    List<Schedule> findByStoreAndWorkDate(Long storeId, LocalDate workDate);
+    List<Schedule> findByStoreAndWorkDate(Store store, LocalDate workDate);
 
     // 직원 중복 스케줄 방지
     boolean existsByEmployeeIdAndWorkDate(Long employeeId, LocalDate workDate);
@@ -47,4 +47,5 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findByEmployeeAndWorkDate(Employee employee, LocalDate workDate);
 
+    List<Schedule> findByEmployeeAndStoreAndWorkDate(Employee employee, Store store, LocalDate workDate);
 }
