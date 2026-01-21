@@ -83,7 +83,7 @@ PartTimeHR/
 │   ├── service/
 │   ├── repository/
 │   └── dto/
-├── Schedule/
+├── schedule/           # 스케줄 관련
 │   ├── domain/
 │   ├── controller/
 │   ├── service/
@@ -92,7 +92,14 @@ PartTimeHR/
 │   ├── dto/
 │   ├── util/
 │   └── mapper/
-├── 추가 예정
+├── workrecord/         # 근태 기록 관련
+│   ├── domain/
+│   ├── controller/
+│   ├── service/
+│   ├── repository/
+│   ├── exception/
+│   ├── dto/
+│   └── mapper/
 ```
 
 ---
