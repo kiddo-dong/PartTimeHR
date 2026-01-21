@@ -6,6 +6,7 @@ import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.service.StoreAccessService;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
 import com.example.PartTimeHR.workrecord.domain.WorkStatus;
+import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.mapper.WorkRecordMapper;
 import com.example.PartTimeHR.workrecord.repository.WorkRecordRepository;
@@ -14,8 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,47 +27,40 @@ public class WorkRecordService {
     private final WorkRecordRepository workRecordRepository;
     private final WorkRecordMapper workRecordMapper;
 
+    /* ======================
+       자동 생성 (원클릭)
+       ====================== */
+
     // 출근
     public WorkRecordResponse clockIn(Long employerId, Long storeId, Long employeeId) {
-        Store store = storeAccessService.getMyStore(storeId, employerId);
-        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
-        storeAccessService.validateEmployeeInStore(store, employee);
 
-        LocalDate today = LocalDate.now();
+        Employee employee = validateAccess(employerId, storeId, employeeId);
 
-        // 오늘 미완료 기록이 있으면 출근 불가
-        List<WorkRecord> todayRecords =
-                workRecordRepository.findByEmployeeAndWorkDate(employee, today);
-
-        boolean hasActiveRecord = todayRecords.stream()
-                .anyMatch(r -> r.getStatus() != WorkStatus.COMPLETED);
-
-        if (hasActiveRecord) {
-            throw new IllegalStateException("오늘 아직 퇴근하지 않은 출근 기록이 있습니다.");
+        // 진행 중 근무가 있으면 출근 불가
+        if (workRecordRepository.existsByEmployeeAndClockOutTimeIsNull(employee)) {
+            throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
         }
 
-        // 6. 생성
         WorkRecord record = WorkRecord.builder()
                 .employee(employee)
-                .workDate(today)
-                .clockInTime(java.time.LocalDateTime.now())
+                .workDate(LocalDate.now())
+                .clockInTime(LocalDateTime.now())
                 .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
                 .appliedJobTitle(employee.getPayPolicy().getJobTitle())
                 .status(WorkStatus.IN_PROGRESS)
                 .build();
 
         workRecordRepository.save(record);
-
         return workRecordMapper.toResponse(record);
     }
 
     // 휴게 시작
     public WorkRecordResponse startBreak(Long employerId, Long storeId, Long employeeId) {
 
-        WorkRecord record = getTodayActiveRecord(employerId, storeId, employeeId);
+        WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
 
-        if (record.getStatus() != WorkStatus.IN_PROGRESS) {
-            throw new IllegalStateException("근무 중일 때만 휴게를 시작할 수 있습니다.");
+        if (!record.canStartBreak()) {
+            throw new IllegalStateException("휴게를 시작할 수 없는 상태입니다.");
         }
 
         record.startBreak();
@@ -76,10 +70,10 @@ public class WorkRecordService {
     // 휴게 종료
     public WorkRecordResponse endBreak(Long employerId, Long storeId, Long employeeId) {
 
-        WorkRecord record = getTodayActiveRecord(employerId, storeId, employeeId);
+        WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
 
-        if (record.getStatus() != WorkStatus.ON_BREAK) {
-            throw new IllegalStateException("휴게 중일 때만 종료할 수 있습니다.");
+        if (!record.canEndBreak()) {
+            throw new IllegalStateException("휴게 종료가 불가능한 상태입니다.");
         }
 
         record.endBreak();
@@ -89,32 +83,93 @@ public class WorkRecordService {
     // 퇴근
     public WorkRecordResponse clockOut(Long employerId, Long storeId, Long employeeId) {
 
-        WorkRecord record = getTodayActiveRecord(employerId, storeId, employeeId);
+        WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
 
-        if (record.getStatus() == WorkStatus.COMPLETED) {
-            throw new IllegalStateException("이미 퇴근 처리된 기록입니다.");
+        if (!record.canClockOut()) {
+            throw new IllegalStateException("휴게 종료 후 퇴근할 수 있습니다.");
         }
 
-        record.clockOut();
+        record.clockOut(LocalDateTime.now());
         return workRecordMapper.toResponse(record);
     }
 
-    // 공통 로직 (당일 출근 기록 조회 및 해당 기록 기반 )
-    private WorkRecord getTodayActiveRecord(Long employerId, Long storeId, Long employeeId) {
+    /* ======================
+       수동 생성
+       ====================== */
 
+    public WorkRecordResponse createManual(
+            Long employerId,
+            Long storeId,
+            CreateWorkRecordRequest request
+    ) {
+
+        Employee employee = validateAccess(
+                employerId, storeId, request.getEmployeeId()
+        );
+
+        // 미완료 수동 생성은 전체 기준으로 제한
+        if (request.getClockOutTime() == null &&
+                workRecordRepository.existsByEmployeeAndClockOutTimeIsNull(employee)) {
+            throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
+        }
+
+        WorkRecord record = WorkRecord.builder()
+                .employee(employee)
+                .workDate(request.getWorkDate())
+                .clockInTime(request.getClockInTime())
+                .breakStartTime(request.getBreakStartTime())
+                .breakEndTime(request.getBreakEndTime())
+                .clockOutTime(request.getClockOutTime())
+                .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
+                .appliedJobTitle(employee.getPayPolicy().getJobTitle())
+                .status(resolveStatus(request))
+                .memo(request.getMemo())
+                .build();
+
+        workRecordRepository.save(record);
+        return workRecordMapper.toResponse(record);
+    }
+
+    /* ======================
+       공통 메서드
+       ====================== */
+
+    private Employee validateAccess(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
         Store store = storeAccessService.getMyStore(storeId, employerId);
         Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
         storeAccessService.validateEmployeeInStore(store, employee);
+        return employee;
+    }
+
+    private WorkRecord getActiveRecord(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
+        Employee employee = validateAccess(employerId, storeId, employeeId);
 
         return workRecordRepository
-                .findTopByEmployeeAndWorkDateAndStatusNotOrderByClockInTimeDesc(
-                        employee,
-                        LocalDate.now(),
-                        WorkStatus.COMPLETED
-                )
+                .findFirstByEmployeeAndClockOutTimeIsNullOrderByClockInTimeDesc(employee)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("오늘 진행 중인 출근 기록이 없습니다.")
+                        new IllegalStateException("진행 중인 근무 기록이 없습니다.")
                 );
     }
 
+    private WorkStatus resolveStatus(CreateWorkRecordRequest request) {
+
+        if (request.getClockOutTime() != null) {
+            return WorkStatus.COMPLETED;
+        }
+
+        if (request.getBreakStartTime() != null &&
+                request.getBreakEndTime() == null) {
+            return WorkStatus.ON_BREAK;
+        }
+
+        return WorkStatus.IN_PROGRESS;
+    }
 }

@@ -71,10 +71,6 @@ public class WorkRecord {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    /* =======================
-       생성 / 수정 시점 처리
-       ======================= */
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -85,21 +81,68 @@ public class WorkRecord {
         this.updatedAt = LocalDateTime.now();
     }
 
+
+    /** 현재 진행 중인 근무인가 */
+    public boolean isActive() {
+        return clockOutTime == null;
+    }
+
+    /** 휴게 시작 가능 여부 */
+    public boolean canStartBreak() {
+        return status == WorkStatus.IN_PROGRESS
+                && breakStartTime == null;
+        // breakEndTime은 당연히 null
+    }
+
+    /** 휴게 종료 가능 여부 */
+    public boolean canEndBreak() {
+        return status == WorkStatus.ON_BREAK
+                && breakStartTime != null
+                && breakEndTime == null;
+    }
+
+    /** 퇴근 가능 여부 */
+    public boolean canClockOut() {
+        // 휴게가 없으면 바로 퇴근 가능
+        if (breakStartTime == null) {
+            return status == WorkStatus.IN_PROGRESS;
+        }
+
+        // 휴게가 있다면 반드시 종료 후 퇴근
+        return status == WorkStatus.IN_PROGRESS
+                && breakEndTime != null;
+    }
+
+    /* ======================
+       상태 변경 메서드
+       ====================== */
+
+    /** 휴게 시작 */
     public void startBreak() {
-        this.status = WorkStatus.ON_BREAK;
+        if (!canStartBreak()) {
+            throw new IllegalStateException("휴게를 시작할 수 없는 상태입니다.");
+        }
         this.breakStartTime = LocalDateTime.now();
+        this.status = WorkStatus.ON_BREAK;
     }
 
+    /** 휴게 종료 */
     public void endBreak() {
-        this.status = WorkStatus.IN_PROGRESS;
+        if (!canEndBreak()) {
+            throw new IllegalStateException("휴게를 종료할 수 없는 상태입니다.");
+        }
         this.breakEndTime = LocalDateTime.now();
+        this.status = WorkStatus.IN_PROGRESS;
     }
 
-    public void clockOut() {
+    /** 퇴근 */
+    public void clockOut(LocalDateTime now) {
+        if (!canClockOut()) {
+            throw new IllegalStateException("퇴근할 수 없는 상태입니다.");
+        }
+        this.clockOutTime = now;
         this.status = WorkStatus.COMPLETED;
-        this.clockOutTime = LocalDateTime.now();
     }
-
 }
 
 

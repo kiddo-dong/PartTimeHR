@@ -1,8 +1,10 @@
 package com.example.PartTimeHR.workrecord.controller;
 
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
+import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.service.WorkRecordService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,7 @@ public class WorkRecordController {
 
     private final WorkRecordService workRecordService;
 
+    // ===== 자동 생성(원클릭) =====
     // 출근
     @PostMapping("/employees/{employeeId}/clock-in")
     public ResponseEntity<WorkRecordResponse> clockIn(
@@ -73,6 +76,19 @@ public class WorkRecordController {
         );
     }
 
-    // ===== 조회 API =====
+    // ===== 수동 생성 =====
+    // 수동 근무 기록 생성
+    @PostMapping("employees/manual")
+    public ResponseEntity<WorkRecordResponse> createManual(
+            @AuthenticationPrincipal CustomUserDetails employer,
+            @PathVariable Long storeId,
+            @Valid @RequestBody CreateWorkRecordRequest request
+    ) {
+        WorkRecordResponse response =
+                workRecordService.createManual(
+                        employer.getId(), storeId, request
+                );
 
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 }
