@@ -28,9 +28,9 @@ public class Store {
     @Column(name = "address")
     private String address;
     @Column(name = "week_start_day", nullable = false)
-    private Integer weekStartDay;
+    private Integer weekStartDay; // 주 시작일
     @Column(name = "weekly_pay_applicable", nullable = false)
-    private Boolean weeklyPayApplicable = false;// 기존 weeklyPayApplicable (주휴 수당 제공 여부)
+    private Boolean weeklyPayApplicable = false; // 기존 weeklyPayApplicable (주휴 수당 제공 여부)
 
     // 사장
     @ManyToOne
