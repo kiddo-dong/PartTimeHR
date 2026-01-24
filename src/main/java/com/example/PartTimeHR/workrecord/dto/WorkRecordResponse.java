@@ -22,9 +22,9 @@ public class WorkRecordResponse {
     private LocalDateTime breakEndTime;
     private LocalDateTime clockOutTime;
     private String status;
-    private Double totalWorkHours;      // 총 근무 시간
-    private Double breakHours;          // 휴게 시간
-    private Double actualWorkHours;     // 실제 근무 시간 (총 -/ 오늘 가 휴게)
+    private Long totalWorkMinutes;      // 총 근무 시간
+    private Long breakMinutes;          // 휴게 시간
+    private Long actualWorkMinutes;     // 실 근무 시간
     private String memo;
     private int appliedHourlyWage;   // 시급
     private String appliedJobTitle;   // 직급

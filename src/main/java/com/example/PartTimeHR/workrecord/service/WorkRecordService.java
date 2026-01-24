@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -28,15 +28,17 @@ public class WorkRecordService {
     private final WorkRecordMapper workRecordMapper;
 
     /* ======================
-       자동 생성 (원클릭)
+       자동 생성 (출근 / 휴게 / 퇴근)
        ====================== */
 
     // 출근
-    public WorkRecordResponse clockIn(Long employerId, Long storeId, Long employeeId) {
-
+    public WorkRecordResponse clockIn(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
         Employee employee = validateAccess(employerId, storeId, employeeId);
 
-        // 진행 중 근무가 있으면 출근 불가
         if (workRecordRepository.existsByEmployeeAndClockOutTimeIsNull(employee)) {
             throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
         }
@@ -48,6 +50,9 @@ public class WorkRecordService {
                 .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
                 .appliedJobTitle(employee.getPayPolicy().getJobTitle())
                 .status(WorkStatus.IN_PROGRESS)
+                .totalBreakMinutes(0)
+                .totalWorkedMinutes(0)
+                .netWorkedMinutes(0)
                 .build();
 
         workRecordRepository.save(record);
@@ -55,46 +60,40 @@ public class WorkRecordService {
     }
 
     // 휴게 시작
-    public WorkRecordResponse startBreak(Long employerId, Long storeId, Long employeeId) {
-
+    public WorkRecordResponse startBreak(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
         WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
-
-        if (!record.canStartBreak()) {
-            throw new IllegalStateException("휴게를 시작할 수 없는 상태입니다.");
-        }
-
         record.startBreak();
         return workRecordMapper.toResponse(record);
     }
 
     // 휴게 종료
-    public WorkRecordResponse endBreak(Long employerId, Long storeId, Long employeeId) {
-
+    public WorkRecordResponse endBreak(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
         WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
-
-        if (!record.canEndBreak()) {
-            throw new IllegalStateException("휴게 종료가 불가능한 상태입니다.");
-        }
-
         record.endBreak();
         return workRecordMapper.toResponse(record);
     }
 
     // 퇴근
-    public WorkRecordResponse clockOut(Long employerId, Long storeId, Long employeeId) {
-
+    public WorkRecordResponse clockOut(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
         WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
-
-        if (!record.canClockOut()) {
-            throw new IllegalStateException("휴게 종료 후 퇴근할 수 있습니다.");
-        }
-
         record.clockOut(LocalDateTime.now());
         return workRecordMapper.toResponse(record);
     }
 
     /* ======================
-       수동 생성
+       수동 생성 (관리자 입력)
        ====================== */
 
     public WorkRecordResponse createManual(
@@ -102,16 +101,17 @@ public class WorkRecordService {
             Long storeId,
             CreateWorkRecordRequest request
     ) {
-
         Employee employee = validateAccess(
                 employerId, storeId, request.getEmployeeId()
         );
 
-        // 미완료 수동 생성은 전체 기준으로 제한
+        // 진행 중 근무 중복 방지
         if (request.getClockOutTime() == null &&
                 workRecordRepository.existsByEmployeeAndClockOutTimeIsNull(employee)) {
             throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
         }
+
+        WorkStatus status = resolveStatus(request);
 
         WorkRecord record = WorkRecord.builder()
                 .employee(employee)
@@ -122,8 +122,11 @@ public class WorkRecordService {
                 .clockOutTime(request.getClockOutTime())
                 .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
                 .appliedJobTitle(employee.getPayPolicy().getJobTitle())
-                .status(resolveStatus(request))
+                .status(status)
                 .memo(request.getMemo())
+                .totalBreakMinutes(0)
+                .totalWorkedMinutes(0)
+                .netWorkedMinutes(0)
                 .build();
 
         workRecordRepository.save(record);

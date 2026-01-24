@@ -9,5 +9,4 @@ public class PartTimeHrApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(PartTimeHrApplication.class, args);
 	}
-
 }

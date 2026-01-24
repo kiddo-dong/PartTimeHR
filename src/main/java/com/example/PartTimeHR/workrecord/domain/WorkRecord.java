@@ -4,6 +4,7 @@ import com.example.PartTimeHR.employee.domain.Employee;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -11,7 +12,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "work_record")
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -62,6 +62,18 @@ public class WorkRecord {
     // 메모 (고용주가 수정 시 사용)
     @Column(length = 500)
     private String memo;
+
+    // 휴게 누적 시간 (분) 없으면 0
+    @Column(name = "total_break_minutes", nullable = false)
+    private int totalBreakMinutes;
+
+    // 총 근무 시간 (분) 퇴근 시 확정
+    @Column(name = "total_worked_minutes", nullable = false)
+    private int totalWorkedMinutes;
+
+    // 실근무 시간 (분)
+    @Column(name = "net_worked_minutes", nullable = false)
+    private int netWorkedMinutes;
 
     // 생성 시간
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -142,6 +154,27 @@ public class WorkRecord {
         }
         this.clockOutTime = now;
         this.status = WorkStatus.COMPLETED;
+    }
+
+
+    public Long getTotalWorkMinutes() {
+        if (clockInTime == null || clockOutTime == null) {
+            return null;
+        }
+        return Duration.between(clockInTime, clockOutTime).toMinutes();
+    }
+
+    public Long getBreakMinutes() {
+        if (breakStartTime == null || breakEndTime == null) {
+            return 0L;
+        }
+        return Duration.between(breakStartTime, breakEndTime).toMinutes();
+    }
+
+    public Long getActualWorkMinutes() {
+        Long total = getTotalWorkMinutes();
+        if (total == null) return null;
+        return Math.max(total - getBreakMinutes(), 0L);
     }
 }
 
