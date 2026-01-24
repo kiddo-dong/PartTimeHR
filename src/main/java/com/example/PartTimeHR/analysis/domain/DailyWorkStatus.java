@@ -1,8 +1,11 @@
 package com.example.PartTimeHR.analysis.domain;
 
+import lombok.Getter;
+
 import java.time.LocalDate;
 import java.util.EnumSet;
 
+@Getter
 public class DailyWorkStatus {
 
     private final LocalDate date;
@@ -12,6 +15,7 @@ public class DailyWorkStatus {
 
     private final AttendanceStatus attendanceStatus; // NORMAL / ABSENT / LATE
 
+    private int scheduledMinutes;
     private final int workedMinutes;   // 실근무 시간 (분)
 
     private final EnumSet<WorkFlag> workFlags; // OVERTIME 등
@@ -50,28 +54,6 @@ public class DailyWorkStatus {
                 workFlags == null ? EnumSet.noneOf(WorkFlag.class) : workFlags
         );
     }
-
-    // === 조회용 메서드 ===
-    public LocalDate getDate() {
-        return date;
-    }
-
-    public boolean isScheduled() {
-        return scheduled;
-    }
-
-    public boolean isWorked() {
-        return worked;
-    }
-
-    public AttendanceStatus getAttendanceStatus() {
-        return attendanceStatus;
-    }
-
-    public int getWorkedMinutes() {
-        return workedMinutes;
-    }
-
     public boolean hasFlag(WorkFlag flag) {
         return workFlags.contains(flag);
     }
