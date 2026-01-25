@@ -50,7 +50,7 @@ public class StoreController {
 
     // ====== 매장 조회 ======
     // 전체 조회
-    @GetMapping("/all")
+    @GetMapping
     public ResponseEntity<List<StoreInfoResponse>> myStores(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {

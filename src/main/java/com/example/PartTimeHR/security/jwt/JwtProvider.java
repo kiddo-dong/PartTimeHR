@@ -27,7 +27,7 @@ public class JwtProvider {
     }
 
     // 토큰 생성
-    public String createAccessToken(String email, Long id,String role) {
+    public String createAccessToken(String email, Long id, String role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expiration);
 
