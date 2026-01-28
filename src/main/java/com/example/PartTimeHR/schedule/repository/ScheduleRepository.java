@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
@@ -49,4 +50,5 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByEmployeeAndWorkDate(Employee employee, LocalDate workDate);
 
     List<Schedule> findByEmployeeAndStoreAndWorkDate(Employee employee, Store store, LocalDate workDate);
+
 }

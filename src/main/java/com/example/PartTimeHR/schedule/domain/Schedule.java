@@ -60,4 +60,13 @@ public class Schedule {
     void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    /* 비즈니스 로직 */
+    public void updateTime(
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
 }

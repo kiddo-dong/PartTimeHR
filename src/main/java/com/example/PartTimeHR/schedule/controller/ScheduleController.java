@@ -2,6 +2,7 @@ package com.example.PartTimeHR.schedule.controller;
 
 import com.example.PartTimeHR.schedule.dto.ScheduleCreateRequest;
 import com.example.PartTimeHR.schedule.dto.ScheduleResponse;
+import com.example.PartTimeHR.schedule.dto.ScheduleUpdateRequest;
 import com.example.PartTimeHR.schedule.service.ScheduleService;
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -26,7 +27,7 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
 
-    // 스케줄 생성
+    // ===== 스케줄 생성 =====
     @PostMapping
     public ResponseEntity<Void> createSchedule(
             @PathVariable Long storeId,
@@ -37,6 +38,28 @@ public class ScheduleController {
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    // ===== 스케줄 수정 =====
+    @PutMapping("/{scheduleId}/employees/{employeeId}")
+    public ResponseEntity<Void> updateSchedule(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId,
+            @PathVariable Long employeeId,
+            @PathVariable Long scheduleId,
+            @Valid @RequestBody ScheduleUpdateRequest request
+    ) {
+        scheduleService.updateSchedule(
+                userDetails.getId(),
+                storeId,
+                employeeId,
+                scheduleId,
+                request
+        );
+        return ResponseEntity.ok().build();
+    }
+
+
+
     // ===== 전체 직원 조회(단일/기간/주간/월간) =====
     // 전체 날짜별 스케줄 조회
     @GetMapping("/date")
@@ -160,5 +183,5 @@ public class ScheduleController {
         );
     }
 
-    // ===== 직급별 추가 예정(단일/기간/주간/월간) =====
+    // ===== 직급별 조회 추가 예정(단일/기간/주간/월간) =====
 }

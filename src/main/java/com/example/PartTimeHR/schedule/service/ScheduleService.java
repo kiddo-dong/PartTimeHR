@@ -6,6 +6,7 @@ import com.example.PartTimeHR.employee.service.EmployeeAccessService;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.dto.ScheduleCreateRequest;
 import com.example.PartTimeHR.schedule.dto.ScheduleResponse;
+import com.example.PartTimeHR.schedule.dto.ScheduleUpdateRequest;
 import com.example.PartTimeHR.schedule.exception.DuplicateScheduleException;
 import com.example.PartTimeHR.schedule.mapper.ScheduleMapper;
 import com.example.PartTimeHR.schedule.repository.ScheduleRepository;
@@ -70,8 +71,48 @@ public class ScheduleService {
         scheduleRepository.save(schedule);
     }
 
-    // ===== 전체 직원 조회(단일/기간/주간/월간) =====
+    // ===== 수정 =====
+    @Transactional
+    public void updateSchedule(
+            Long employerId,
+            Long storeId,
+            Long employeeId,
+            Long scheduleId,
+            ScheduleUpdateRequest request
+    ) {
+        // 매장 권한
+        Store store = storeAccessService.getMyStore(storeId, employerId);
 
+        // 직원 소속 검증
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+
+        if (!employee.getStore().getId().equals(store.getId())) {
+            throw new IllegalArgumentException("해당 직원은 이 매장 소속이 아닙니다.");
+        }
+
+        // 스케줄 조회
+        Schedule schedule = scheduleAccessService.getScheduleOrThrow(scheduleId);
+
+        // 스케줄-직원-매장 일치 검증
+        if (!schedule.getEmployee().getId().equals(employeeId)) {
+            throw new IllegalArgumentException("스케줄과 직원 정보가 일치하지 않습니다.");
+        }
+
+        // 시간 검증 (야간 포함 OK)
+        scheduleAccessService.validateWorkTime(
+                request.getStartTime(),
+                request.getEndTime()
+        );
+
+        // 수정
+        schedule.updateTime(
+                request.getStartTime(),
+                request.getEndTime()
+        );
+    }
+
+
+    // ===== 전체 직원 조회(단일/기간/주간/월간) =====
     // 직원 전체 단일 날짜 조회
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getSchedules(
@@ -90,7 +131,9 @@ public class ScheduleService {
 
     }
 
+
     // 직원 전체 기간 조회
+    @Transactional(readOnly = true)
     public List<ScheduleResponse> findStoreSchedulesByPeriod(
             Long employerId, Long storeId, LocalDate startDate, LocalDate endDate
     ) {

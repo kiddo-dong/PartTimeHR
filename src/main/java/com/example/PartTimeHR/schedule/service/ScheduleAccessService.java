@@ -1,8 +1,11 @@
 package com.example.PartTimeHR.schedule.service;
 
+import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.exception.DuplicateScheduleException;
 import com.example.PartTimeHR.schedule.exception.InvalidScheduleException;
 import com.example.PartTimeHR.schedule.repository.ScheduleRepository;
+import com.example.PartTimeHR.store.domain.Store;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +22,8 @@ import java.time.LocalTime;
 @RequiredArgsConstructor
 public class ScheduleAccessService {
 
-    public ScheduleRepository scheduleRepository;
+    private final ScheduleRepository scheduleRepository;
+
 
     public void validateWorkTime(LocalDateTime startTime, LocalDateTime endTime) {
 
@@ -47,5 +51,12 @@ public class ScheduleAccessService {
         )) {
             throw new DuplicateScheduleException();
         }
+    }
+
+    public Schedule getScheduleOrThrow(Long scheduleId) {
+        return scheduleRepository.findById(scheduleId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 스케줄을 찾을 수 없습니다.")
+                );
     }
 }
