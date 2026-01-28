@@ -3,6 +3,7 @@ package com.example.PartTimeHR.employee.service;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.dto.CreateEmployeeRequest;
 import com.example.PartTimeHR.employee.dto.EmployeeInfoResponse;
+import com.example.PartTimeHR.employee.dto.UpdateEmployeeRequest;
 import com.example.PartTimeHR.employee.exception.PasswordMismatchException;
 import com.example.PartTimeHR.employee.mapper.EmployeeMapper;
 import com.example.PartTimeHR.employee.repository.EmployeeRepository;
@@ -88,6 +89,59 @@ public class EmployeeService {
         // 응답
         return response;
     }
+
+    @Transactional
+    public EmployeeInfoResponse updateEmployee(
+            Long employerId,
+            Long storeId,
+            Long employeeId,
+            UpdateEmployeeRequest request
+    ) {
+        // 직원 조회 (영속 상태)
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+
+        // 매장 소유 검증
+        storeAccessService.getMyStore(storeId, employerId);
+
+        /* ===== 비밀번호 변경 로직 ===== */
+        if (request.getPassword() != null || request.getPasswordConfirm() != null) {
+
+            // 둘 중 하나만 들어온 경우
+            if (request.getPassword() == null || request.getPasswordConfirm() == null) {
+                throw new IllegalArgumentException("비밀번호와 비밀번호 확인을 모두 입력해야 합니다.");
+            }
+
+            // 불일치
+            if (!request.getPassword().equals(request.getPasswordConfirm())) {
+                throw new IllegalArgumentException("비밀번호 확인이 일치하지 않습니다.");
+            }
+
+            employee.changePassword(
+                    passwordEncoder.encode(request.getPassword())
+            );
+        }
+
+        /* ===== 기본 정보 변경 ===== */
+        if (request.getName() != null || request.getPhone() != null) {
+            employee.updateBasicInfo(
+                    request.getName(),
+                    request.getPhone()
+            );
+        }
+
+        /* ===== 페이 정책 변경 ===== */
+        if (request.getPayPolicyId() != null) {
+            PayPolicy policy = payPolicyRepository.findById(request.getPayPolicyId())
+                    .orElseThrow(() -> new IllegalArgumentException("페이 정책을 찾을 수 없습니다."));
+
+            employee.changePayPolicy(policy);
+        }
+
+        // save() 필요 없음 (Dirty Checking)
+        return employeeMapper.toInfoResponse(employee);
+    }
+
+
 
     // 전체 직원 조회
     @Transactional(readOnly = true)

@@ -68,6 +68,19 @@ public class Employee {
     }
 
     /* 비즈니스 */
+    public void updateBasicInfo(String name, String phone) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (phone != null) {
+            this.phone = phone;
+        }
+    }
+
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
     public void changePayPolicy(PayPolicy policy) {
         this.payPolicy = policy;
     }

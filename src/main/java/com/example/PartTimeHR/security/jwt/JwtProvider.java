@@ -55,7 +55,7 @@ public class JwtProvider {
         }
     }
 
-    // ✅ Claims 추출
+    // Claims 추출
     // 내부적으로 header.payload.signature 분리 후 secretKey 붙여서 검증
     public Claims getClaims(String token) {
         return Jwts.parser()
