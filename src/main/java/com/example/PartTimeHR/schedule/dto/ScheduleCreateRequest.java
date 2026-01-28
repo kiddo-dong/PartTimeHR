@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Getter
@@ -16,8 +17,8 @@ public class ScheduleCreateRequest {
     private LocalDate workDate;
 
     @NotNull
-    private LocalTime startTime;
+    private LocalDateTime startTime;
 
     @NotNull
-    private LocalTime endTime;
+    private LocalDateTime endTime;
 }

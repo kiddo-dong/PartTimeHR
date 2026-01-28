@@ -37,10 +37,10 @@ public class Schedule {
 
     // 근무 시작 / 종료
     @Column(nullable = false)
-    private LocalTime startTime;
+    private LocalDateTime startTime;
 
     @Column(nullable = false)
-    private LocalTime endTime;
+    private LocalDateTime endTime;
 
     // 확정 여부 (사장이 승인했는지)
     @Column(nullable = false)

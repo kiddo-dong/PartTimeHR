@@ -22,11 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmployeeScheduleService {
 
-    public final ScheduleAccessService scheduleAccessService;
     public final ScheduleRepository scheduleRepository;
     public final ScheduleMapper scheduleMapper;
-    public final EmployeeRepository employeeRepository;
-    public final StoreAccessService storeAccessService;
     public final EmployeeAccessService employeeAccessService;
 
     // 직원의 일별 스케줄 조회
@@ -45,6 +42,7 @@ public class EmployeeScheduleService {
                 .toList();
     }
 
+    // 기간 조회
     public List<ScheduleResponse> getSchedulesByPeriod(Long employeeId, LocalDate startDate, LocalDate endDate) {
         Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
 

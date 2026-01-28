@@ -21,7 +21,7 @@ public class ScheduleAccessService {
 
     public ScheduleRepository scheduleRepository;
 
-    public void validateWorkTime(LocalTime startTime, LocalTime endTime) {
+    public void validateWorkTime(LocalDateTime startTime, LocalDateTime endTime) {
 
         if (startTime == null || endTime == null) {
             throw new InvalidScheduleException("근무 시간이 비어있습니다.");
@@ -36,8 +36,8 @@ public class ScheduleAccessService {
     public void validateNoOverlap(
             Long employeeId,
             LocalDate workDate,
-            LocalTime startTime,
-            LocalTime endTime
+            LocalDateTime startTime,
+            LocalDateTime endTime
     ) {
         if (scheduleRepository.existsOverlappingSchedule(
                 employeeId,
