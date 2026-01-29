@@ -2,6 +2,7 @@ package com.example.PartTimeHR.workrecord.controller;
 
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
+import com.example.PartTimeHR.workrecord.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.service.WorkRecordService;
 import jakarta.validation.Valid;
@@ -90,5 +91,21 @@ public class WorkRecordController {
                 );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // ===== 수정 =====
+    @PutMapping("/{workRecordId}")
+    public ResponseEntity<WorkRecordResponse> updateWorkRecord(
+            @AuthenticationPrincipal CustomUserDetails employer,
+            @PathVariable Long storeId,
+            @PathVariable Long workRecordId,
+            @Valid @RequestBody UpdateWorkRecordRequest request
+    ) {
+        WorkRecordResponse response =
+                workRecordService.updateWorkRecord(
+                        employer.getId(), storeId, workRecordId, request
+                );
+
+        return ResponseEntity.ok(response);
     }
 }

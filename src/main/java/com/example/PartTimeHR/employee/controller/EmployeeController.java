@@ -63,7 +63,7 @@ public class EmployeeController {
     }
 
     // 직원 조회 - 단일
-    @GetMapping
+    @GetMapping("/{employeeId}")
     public ResponseEntity<EmployeeInfoResponse> getEmployee(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long storeId,

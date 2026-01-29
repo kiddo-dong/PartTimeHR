@@ -7,6 +7,7 @@ import com.example.PartTimeHR.store.service.StoreAccessService;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
 import com.example.PartTimeHR.workrecord.domain.WorkStatus;
 import com.example.PartTimeHR.workrecord.dto.CreateWorkRecordRequest;
+import com.example.PartTimeHR.workrecord.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.dto.WorkRecordResponse;
 import com.example.PartTimeHR.workrecord.mapper.WorkRecordMapper;
 import com.example.PartTimeHR.workrecord.repository.WorkRecordRepository;
@@ -130,6 +131,21 @@ public class WorkRecordService {
                 .build();
 
         workRecordRepository.save(record);
+        return workRecordMapper.toResponse(record);
+    }
+    @Transactional
+    public WorkRecordResponse updateWorkRecord(Long employerId, Long storeId, Long workRecordId, UpdateWorkRecordRequest request) {
+        // 1. 가게 소유 확인
+        storeAccessService.getMyStore(storeId, employerId);
+
+        // 2. 기존 근무 기록 조회
+        WorkRecord record = workRecordRepository.findById(workRecordId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 근무 기록이 존재하지 않습니다."));
+
+        // 3. MapStruct로 request 덮어쓰기
+        workRecordMapper.updateFromRequest(request, record);
+
+        // 4. dirty checking으로 자동 저장
         return workRecordMapper.toResponse(record);
     }
 

@@ -11,4 +11,5 @@ public interface PayPolicyRepository extends JpaRepository<PayPolicy, Long> {
     List<PayPolicy> findByStoreId(Long storeId);
 
     Optional<PayPolicy> findByStoreIdAndIsDefaultTrue(Long storeId);
+
 }

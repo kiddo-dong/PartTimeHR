@@ -6,6 +6,7 @@ import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.dto.StoreCreateRequest;
 import com.example.PartTimeHR.store.dto.StoreInfoResponse;
+import com.example.PartTimeHR.store.dto.StoreUpdateRequest;
 import com.example.PartTimeHR.store.exception.StoreAccessDeniedException;
 import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import com.example.PartTimeHR.store.repository.StoreRepository;
@@ -32,7 +33,7 @@ public class StoreController {
     private final PayPolicyRepository payPolicyRepository;
 
 
-    // ===== 새 매장 추가 =====
+    // ===== 생성 =====
     @PostMapping
     public ResponseEntity<StoreInfoResponse> createStore(
             @Valid @RequestBody StoreCreateRequest request,
@@ -48,7 +49,26 @@ public class StoreController {
                 .body(response);
     }
 
-    // ====== 매장 조회 ======
+    // ===== 수정 =====
+    @PutMapping("/{storeId}")
+    public ResponseEntity<StoreInfoResponse> updateStore(
+            @Valid @RequestBody StoreUpdateRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+
+        StoreInfoResponse response = storeService.storeUpdateRequest(userDetails.getId(), request);
+
+        return ResponseEntity.ok(response);
+    }
+
+
+
+
+
+
+
+
+    // ===== 조회 =====
     // 전체 조회
     @GetMapping
     public ResponseEntity<List<StoreInfoResponse>> myStores(

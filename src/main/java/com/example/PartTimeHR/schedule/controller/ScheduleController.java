@@ -58,8 +58,6 @@ public class ScheduleController {
         return ResponseEntity.ok().build();
     }
 
-
-
     // ===== 전체 직원 조회(단일/기간/주간/월간) =====
     // 전체 날짜별 스케줄 조회
     @GetMapping("/date")

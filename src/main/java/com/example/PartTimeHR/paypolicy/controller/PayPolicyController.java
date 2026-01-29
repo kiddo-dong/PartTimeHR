@@ -1,6 +1,7 @@
 package com.example.PartTimeHR.paypolicy.controller;
 
 import com.example.PartTimeHR.paypolicy.dto.CreatePayPolicyRequest;
+import com.example.PartTimeHR.paypolicy.dto.UpdatePayPolicyRequest;
 import com.example.PartTimeHR.paypolicy.service.PayPolicyService;
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -18,6 +19,7 @@ public class PayPolicyController {
 
     private final PayPolicyService payPolicyService;
 
+    // 생성
     @PostMapping
     public ResponseEntity<Void> createPayPolicy(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -32,4 +34,17 @@ public class PayPolicyController {
 
         return ResponseEntity.ok().build();
     }
+
+    // 수정
+    @PutMapping
+    public ResponseEntity<Void> updatePayPolicy(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId,
+            @PathVariable Long payPolicyId,
+            @Valid @RequestBody UpdatePayPolicyRequest request
+    ) {
+        payPolicyService.updatePayPolicy(storeId, payPolicyId, userDetails.getId(), request);
+        return ResponseEntity.ok().build();
+    }
+
 }

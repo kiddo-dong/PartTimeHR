@@ -15,4 +15,6 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
     List<Store> findAllByEmployerId(Long employerId);
 
     Optional<Store> findByIdAndEmployerId(Long id, Long employerId);
+
+    Optional<Store> findByEmployerId(Long employerId);
 }

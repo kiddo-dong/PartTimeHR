@@ -8,6 +8,7 @@ import com.example.PartTimeHR.paypolicy.repository.PayPolicyRepository;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.dto.StoreCreateRequest;
 import com.example.PartTimeHR.store.dto.StoreInfoResponse;
+import com.example.PartTimeHR.store.dto.StoreUpdateRequest;
 import com.example.PartTimeHR.store.exception.StoreNotFoundException;
 import com.example.PartTimeHR.store.mapper.StoreMapper;
 import com.example.PartTimeHR.store.repository.StoreRepository;
@@ -61,6 +62,21 @@ public class StoreServiceImpl implements StoreService {
         Store saved = storeRepository.save(store);
 
         return storeMapper.toInfoResponse(saved);
+    }
+
+    // ===== 수정 =====
+    @Override
+    @Transactional
+    public StoreInfoResponse storeUpdateRequest(
+            Long employerId,
+            StoreUpdateRequest request
+    ) {
+        Store store = storeRepository.findByEmployerId(employerId)
+                .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
+
+        storeMapper.updateStoreFromRequest(request, store);
+
+        return storeMapper.toInfoResponse(store);
     }
 
 
