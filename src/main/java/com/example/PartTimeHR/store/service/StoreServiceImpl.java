@@ -67,15 +67,15 @@ public class StoreServiceImpl implements StoreService {
     // ===== 수정 =====
     @Override
     @Transactional
-    public StoreInfoResponse storeUpdateRequest(
-            Long employerId,
-            StoreUpdateRequest request
-    ) {
-        Store store = storeRepository.findByEmployerId(employerId)
-                .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
+    public StoreInfoResponse updateStore(Long employerId, Long storeId, StoreUpdateRequest request) {
+        // storeId로 정확히 조회, 동시에 owner(employerId) 확인
+        Store store = storeRepository.findByIdAndEmployerId(storeId, employerId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 매장을 찾을 수 없습니다."));
 
+        // DTO 값으로 엔티티 업데이트
         storeMapper.updateStoreFromRequest(request, store);
 
+        // 업데이트 후 DTO 반환
         return storeMapper.toInfoResponse(store);
     }
 

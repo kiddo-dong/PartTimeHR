@@ -10,7 +10,7 @@ public interface StoreService {
     List<StoreInfoResponse> getMyStores(Long employerId);
 
     // === 수정 ===
-    StoreInfoResponse storeUpdateRequest(Long employerId, StoreUpdateRequest storeUpdateRequest);
+    StoreInfoResponse updateStore(Long employerId, Long storeId ,StoreUpdateRequest storeUpdateRequest);
 
     // === 조회 ===
     StoreInfoResponse getStore(Long storeId, Long employerId);

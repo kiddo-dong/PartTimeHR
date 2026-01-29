@@ -52,15 +52,14 @@ public class StoreController {
     // ===== 수정 =====
     @PutMapping("/{storeId}")
     public ResponseEntity<StoreInfoResponse> updateStore(
+            @PathVariable Long storeId,
             @Valid @RequestBody StoreUpdateRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-
-        StoreInfoResponse response = storeService.storeUpdateRequest(userDetails.getId(), request);
-
+        // storeId와 로그인한 employerId를 함께 전달
+        StoreInfoResponse response = storeService.updateStore(userDetails.getId(), storeId, request);
         return ResponseEntity.ok(response);
     }
-
 
 
 

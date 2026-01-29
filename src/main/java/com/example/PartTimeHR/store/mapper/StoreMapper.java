@@ -17,6 +17,12 @@ public interface StoreMapper {
 
     List<StoreInfoResponse> toInfoResponseList(List<Store> stores);
 
+    // 수정: null값 무시할 때 setter 제대로 호출하도록
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "name", source = "storeName")
+    @Mapping(target = "phone", source = "storePhone")
+    @Mapping(target = "address", source = "storeAddress")
+    @Mapping(target = "weekStartDay", source = "weekStartDay")
+    @Mapping(target = "weeklyPayApplicable", source = "weeklyPayApplicable")
     void updateStoreFromRequest(StoreUpdateRequest request, @MappingTarget Store store);
 }
