@@ -61,12 +61,6 @@ public class StoreController {
         return ResponseEntity.ok(response);
     }
 
-
-
-
-
-
-
     // ===== 조회 =====
     // 전체 조회
     @GetMapping
