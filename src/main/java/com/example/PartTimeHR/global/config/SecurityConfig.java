@@ -51,18 +51,35 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
+                // ❌ 웹 로그인 기능 전부 제거
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .logout(logout -> logout.disable())
+
+                // CSRF 끔 (JWT)
                 .csrf(csrf -> csrf.disable())
+
+                // CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // 세션 안 씀
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 org.springframework.security.config.http.SessionCreationPolicy.STATELESS
                         )
                 )
-                .authorizeHttpRequests(auth -> auth
-                        // ✅ preflight 요청 허용 (핵심)
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ✅ 인증 없이 접근 가능한 API
+                // 🔥 인증 실패 시 redirect ❌ → JSON 응답
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((req, res, ex) -> {
+                            res.setStatus(401);
+                            res.setContentType("application/json;charset=UTF-8");
+                            res.getWriter().write("{\"message\":\"unauthorized\"}");
+                        })
+                )
+
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/login",
                                 "/api/employers/signup",
@@ -71,11 +88,10 @@ public class SecurityConfig {
                                 "/api/employers/password/reset-request",
                                 "/api/employers/password/reset"
                         ).permitAll()
-
-                        // 나머지는 JWT 필요
                         .anyRequest().authenticated()
                 )
-                // ✅ JWT 필터 등록
+
+                // JWT 필터
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
