@@ -67,7 +67,7 @@ public class EmployeeController {
     public ResponseEntity<EmployeeInfoResponse> getEmployee(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long storeId,
-            @RequestParam Long employeeId
+            @PathVariable Long employeeId
     ){
         EmployeeInfoResponse response = employeeService.getEmployee(userDetails.getId(), storeId, employeeId);
 
