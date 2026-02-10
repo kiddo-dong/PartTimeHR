@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.employer.domain;
 
+import com.example.PartTimeHR.auth.domain.AuthPrincipal;
 import com.example.PartTimeHR.store.domain.Store;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,7 +23,7 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Employer {
+public class Employer implements AuthPrincipal {
     
     // 수정 가능한 필드에 대한 setter
     public void setName(String name) {
@@ -94,5 +95,10 @@ public class Employer {
     // 이메일 인증시 사용 메소드
     public void verifyEmail() {
         this.emailVerified = true;
+    }
+
+    @Override
+    public boolean isEmailVerified() {
+        return this.emailVerified;
     }
 }

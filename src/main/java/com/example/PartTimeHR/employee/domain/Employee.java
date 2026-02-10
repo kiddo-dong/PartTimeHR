@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.employee.domain;
 
+import com.example.PartTimeHR.auth.domain.AuthPrincipal;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
@@ -19,7 +20,7 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Employee {
+public class Employee implements AuthPrincipal {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
