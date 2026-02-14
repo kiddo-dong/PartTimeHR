@@ -36,7 +36,7 @@ public class PayPolicyController {
     }
 
     // 수정
-    @PutMapping
+    @PutMapping("/{payPolicyId}")
     public ResponseEntity<Void> updatePayPolicy(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long storeId,

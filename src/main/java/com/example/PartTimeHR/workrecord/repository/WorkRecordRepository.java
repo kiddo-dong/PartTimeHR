@@ -26,7 +26,6 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
     );
 
     // 퇴근하지 않은 근무 존재 여부 확인
-
     boolean existsByEmployeeAndClockOutTimeIsNull(Employee employee);
 
     // 직원의 전체 근무 기록 조회
