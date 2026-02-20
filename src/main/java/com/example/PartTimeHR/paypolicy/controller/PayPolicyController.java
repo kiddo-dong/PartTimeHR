@@ -46,5 +46,4 @@ public class PayPolicyController {
         payPolicyService.updatePayPolicy(storeId, payPolicyId, userDetails.getId(), request);
         return ResponseEntity.ok().build();
     }
-
 }
