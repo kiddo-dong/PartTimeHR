@@ -302,4 +302,33 @@ public class ScheduleService {
                 .map(scheduleMapper::toResponse)
                 .toList();
     }
+
+    // ===== 삭제 =====
+    @Transactional
+    public void deleteSchedule(
+            Long employerId,
+            Long storeId,
+            Long employeeId,
+            Long scheduleId
+    ) {
+        // 매장 접근 권한 검증
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // 직원 조회 + 매장 소속 검증
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+        if (!employee.getStore().getId().equals(store.getId())) {
+            throw new IllegalArgumentException("해당 직원은 이 매장 소속이 아닙니다.");
+        }
+
+        // 스케줄 조회
+        Schedule schedule = scheduleAccessService.getScheduleOrThrow(scheduleId);
+
+        // 스케줄-직원 일치 검증
+        if (!schedule.getEmployee().getId().equals(employeeId)) {
+            throw new IllegalArgumentException("해당 직원의 스케줄이 아닙니다.");
+        }
+
+        // 삭제
+        scheduleRepository.delete(schedule);
+    }
 }

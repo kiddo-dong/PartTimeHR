@@ -182,4 +182,22 @@ public class ScheduleController {
     }
 
     // ===== 직급별 조회 추가 예정(단일/기간/주간/월간) =====
+
+    // ===== 스케줄 삭제 =====
+    @DeleteMapping("/{scheduleId}/employees/{employeeId}")
+    public ResponseEntity<Void> deleteSchedule(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId,
+            @PathVariable Long employeeId,
+            @PathVariable Long scheduleId
+    ) {
+        scheduleService.deleteSchedule(
+                userDetails.getId(),
+                storeId,
+                employeeId,
+                scheduleId
+        );
+
+        return ResponseEntity.noContent().build();
+    }
 }
