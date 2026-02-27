@@ -108,4 +108,19 @@ public class WorkRecordController {
 
         return ResponseEntity.ok(response);
     }
+
+    // ===== 삭제 =====
+    // 근무 기록 삭제
+    @DeleteMapping("/{workRecordId}")
+    public ResponseEntity<Void> deleteWorkRecord(
+            @AuthenticationPrincipal CustomUserDetails employer,
+            @PathVariable Long storeId,
+            @PathVariable Long workRecordId
+    ) {
+        workRecordService.deleteWorkRecord(
+                employer.getId(), storeId, workRecordId
+        );
+
+        return ResponseEntity.noContent().build();
+    }
 }

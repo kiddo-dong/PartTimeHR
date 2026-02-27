@@ -191,4 +191,28 @@ public class WorkRecordService {
 
         return WorkStatus.IN_PROGRESS;
     }
+
+    // 삭제
+    @Transactional
+    public void deleteWorkRecord(
+            Long employerId,
+            Long storeId,
+            Long workRecordId
+    ) {
+        // 가게 소유 확인 (사장 권한 검증)
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // 근무 기록 조회
+        WorkRecord record = workRecordRepository.findById(workRecordId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 근무 기록이 존재하지 않습니다.")
+                );
+
+        // 해당 근무 기록이 이 가게 소속인지 검증
+        Employee employee = record.getEmployee();
+        storeAccessService.validateEmployeeInStore(store, employee);
+
+        // 삭제
+        workRecordRepository.delete(record);
+    }
 }
