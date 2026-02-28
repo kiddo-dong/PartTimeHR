@@ -4,6 +4,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+
+// Server 배포 확인용 컨트롤러 (Auth 제거)
 @RestController
 public class RootController {
 
