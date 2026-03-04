@@ -3,6 +3,7 @@ package com.example.PartTimeHR.workrecord.repository;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,4 +31,12 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
 
     // 직원의 전체 근무 기록 조회
     List<WorkRecord> findAllByEmployee(Employee employee);
+
+    @Query("""
+            select wr
+            from WorkRecord wr
+            where wr.employee.store.id = :storeId
+              and wr.workDate = :workDate
+            """)
+    List<WorkRecord> findAllByStoreAndWorkDate(Long storeId, LocalDate workDate);
 }
