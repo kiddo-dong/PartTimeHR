@@ -21,10 +21,6 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-<<<<<<< HEAD
-
-=======
->>>>>>> codex/understand-project-details-d0rakn
 public class AttendanceService {
 
     private final StoreAccessService storeAccessService;
@@ -36,9 +32,6 @@ public class AttendanceService {
 
         List<Schedule> schedules = scheduleRepository.findByStoreAndWorkDate(store, date);
         List<WorkRecord> workRecords = workRecordRepository.findAllByStoreAndWorkDate(storeId, date);
-
-<<<<<<< HEAD
-=======
         DailyMetrics metrics = buildDailyMetrics(date, schedules, workRecords);
 
         return AttendanceDailyResponse.builder()
@@ -108,8 +101,7 @@ public class AttendanceService {
                 .build();
     }
 
-    private DailyMetrics buildDailyMetrics(LocalDate date, List<Schedule> schedules, List<WorkRecord> workRecords) {
->>>>>>> codex/understand-project-details-d0rakn
+    private AttendanceDailyResponse buildDailyMetrics(LocalDate date, List<Schedule> schedules, List<WorkRecord> workRecords) {
         Map<Long, Schedule> scheduleByEmployee = new HashMap<>();
         for (Schedule schedule : schedules) {
             scheduleByEmployee.put(schedule.getEmployee().getId(), schedule);
@@ -196,7 +188,6 @@ public class AttendanceService {
         items.sort(Comparator.comparing(AttendanceDailyEmployeeResponse::getEmployeeName,
                 Comparator.nullsLast(String::compareTo)));
 
-<<<<<<< HEAD
         return AttendanceDailyResponse.builder()
                 .date(date)
                 .scheduledCount(scheduledCount)
@@ -206,6 +197,7 @@ public class AttendanceService {
                 .lateCount(lateCount)
                 .items(items)
                 .build();
+        
     }
 
     public AttendanceSummaryResponse getSummary(Long employerId, Long storeId, LocalDate from, LocalDate to) {
@@ -244,7 +236,6 @@ public class AttendanceService {
                 .lateCount(lateCount)
                 .attendanceRate(attendanceRate)
                 .build();
-=======
         return new DailyMetrics(date, scheduledCount, workedCount, absentCount, unscheduledCount, lateCount, items);
     }
 
@@ -256,7 +247,6 @@ public class AttendanceService {
         if (to.isBefore(from)) {
             throw new IllegalArgumentException("조회 종료일은 시작일보다 빠를 수 없습니다.");
         }
->>>>>>> codex/understand-project-details-d0rakn
     }
 
     private Employee getEmployee(Schedule schedule, List<WorkRecord> records) {
@@ -293,8 +283,6 @@ public class AttendanceService {
         return new AttendanceAggregate(firstClockIn, lastClockOut, workedMinutes);
     }
 
-<<<<<<< HEAD
-=======
     private record DailyMetrics(
             LocalDate date,
             int scheduledCount,
@@ -306,7 +294,6 @@ public class AttendanceService {
     ) {
     }
 
->>>>>>> codex/understand-project-details-d0rakn
     private record AttendanceAggregate(
             LocalDateTime clockInTime,
             LocalDateTime clockOutTime,
