@@ -39,4 +39,15 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
               and wr.workDate = :workDate
             """)
     List<WorkRecord> findAllByStoreAndWorkDate(Long storeId, LocalDate workDate);
+<<<<<<< HEAD
+=======
+
+    @Query("""
+            select wr
+            from WorkRecord wr
+            where wr.employee.store.id = :storeId
+              and wr.workDate between :startDate and :endDate
+            """)
+    List<WorkRecord> findAllByStoreAndWorkDateBetween(Long storeId, LocalDate startDate, LocalDate endDate);
+>>>>>>> codex/understand-project-details-d0rakn
 }
