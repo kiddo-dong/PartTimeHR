@@ -101,7 +101,7 @@ public class AttendanceService {
                 .build();
     }
 
-    private AttendanceDailyResponse buildDailyMetrics(LocalDate date, List<Schedule> schedules, List<WorkRecord> workRecords) {
+    private DailyMetrics buildDailyMetrics(LocalDate date, List<Schedule> schedules, List<WorkRecord> workRecords) {
         Map<Long, Schedule> scheduleByEmployee = new HashMap<>();
         for (Schedule schedule : schedules) {
             scheduleByEmployee.put(schedule.getEmployee().getId(), schedule);
@@ -188,54 +188,6 @@ public class AttendanceService {
         items.sort(Comparator.comparing(AttendanceDailyEmployeeResponse::getEmployeeName,
                 Comparator.nullsLast(String::compareTo)));
 
-        return AttendanceDailyResponse.builder()
-                .date(date)
-                .scheduledCount(scheduledCount)
-                .workedCount(workedCount)
-                .absentCount(absentCount)
-                .unscheduledCount(unscheduledCount)
-                .lateCount(lateCount)
-                .items(items)
-                .build();
-        
-    }
-
-    public AttendanceSummaryResponse getSummary(Long employerId, Long storeId, LocalDate from, LocalDate to) {
-        if (to.isBefore(from)) {
-            throw new IllegalArgumentException("조회 종료일은 시작일보다 빠를 수 없습니다.");
-        }
-
-        int scheduledCount = 0;
-        int workedCount = 0;
-        int absentCount = 0;
-        int unscheduledCount = 0;
-        int lateCount = 0;
-
-        LocalDate date = from;
-        while (!date.isAfter(to)) {
-            AttendanceDailyResponse daily = getDailyAttendance(employerId, storeId, date);
-            scheduledCount += daily.getScheduledCount();
-            workedCount += daily.getWorkedCount();
-            absentCount += daily.getAbsentCount();
-            unscheduledCount += daily.getUnscheduledCount();
-            lateCount += daily.getLateCount();
-            date = date.plusDays(1);
-        }
-
-        double attendanceRate = scheduledCount == 0
-                ? 0d
-                : ((double) (scheduledCount - absentCount) / scheduledCount) * 100;
-
-        return AttendanceSummaryResponse.builder()
-                .from(from)
-                .to(to)
-                .scheduledCount(scheduledCount)
-                .workedCount(workedCount)
-                .absentCount(absentCount)
-                .unscheduledCount(unscheduledCount)
-                .lateCount(lateCount)
-                .attendanceRate(attendanceRate)
-                .build();
         return new DailyMetrics(date, scheduledCount, workedCount, absentCount, unscheduledCount, lateCount, items);
     }
 
