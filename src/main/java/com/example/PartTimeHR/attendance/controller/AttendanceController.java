@@ -18,12 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/stores/{storeId}/attendance")
 @PreAuthorize("hasRole('EMPLOYER')")
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
+
+    public AttendanceController(AttendanceService attendanceService) {
+        this.attendanceService = attendanceService;
+    }
 
     @GetMapping("/daily")
     public ResponseEntity<AttendanceDailyResponse> getDailyAttendance(
