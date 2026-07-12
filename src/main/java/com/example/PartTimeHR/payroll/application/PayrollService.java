@@ -123,7 +123,7 @@ public class PayrollService {
                 .map(record -> PayrollRecordResponse.builder()
                         .workRecordId(record.getId())
                         .workDate(record.getWorkDate())
-                        .netWorkedMinutes(record.getNetWorkedMinutes())
+                        .netWorkedMinutes(record.getActualWorkMinutes().intValue())
                         .appliedHourlyWage(record.getAppliedHourlyWage())
                         .appliedJobTitle(record.getAppliedJobTitle())
                         .pay(PayrollCalculator.recordPay(record))

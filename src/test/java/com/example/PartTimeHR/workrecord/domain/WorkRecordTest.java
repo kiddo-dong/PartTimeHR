@@ -10,104 +10,95 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class WorkRecordTest {
 
+    private static final LocalDate DATE = LocalDate.of(2026, 7, 13);
+
+    private LocalDateTime at(int hour, int minute) {
+        return DATE.atTime(hour, minute);
+    }
+
     private WorkRecord inProgressRecord() {
         return WorkRecord.builder()
-                .workDate(LocalDate.of(2026, 7, 13))
-                .clockInTime(LocalDateTime.of(2026, 7, 13, 9, 0))
+                .workDate(DATE)
+                .clockInTime(at(9, 0))
                 .appliedHourlyWage(10320)
                 .appliedJobTitle("알바생")
-                .status(WorkStatus.IN_PROGRESS)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
                 .build();
     }
 
     @Test
-    void 휴게를_여러_번_시작하고_종료할_수_있다() {
+    void 상태는_시각에서_유도된다() {
         WorkRecord record = inProgressRecord();
+        assertThat(record.getStatus()).isEqualTo(WorkStatus.IN_PROGRESS);
+        assertThat(record.isActive()).isTrue();
 
-        record.startBreak();
+        record.startBreak(at(12, 0));
         assertThat(record.getStatus()).isEqualTo(WorkStatus.ON_BREAK);
 
-        record.endBreak();
+        record.endBreak(at(12, 30));
         assertThat(record.getStatus()).isEqualTo(WorkStatus.IN_PROGRESS);
 
-        // 두 번째 휴게도 가능해야 한다
-        assertThat(record.canStartBreak()).isTrue();
-        record.startBreak();
-        assertThat(record.getStatus()).isEqualTo(WorkStatus.ON_BREAK);
+        record.clockOut(at(18, 0));
+        assertThat(record.getStatus()).isEqualTo(WorkStatus.COMPLETED);
+        assertThat(record.isActive()).isFalse();
+    }
+
+    @Test
+    void 휴게를_여러_번_해도_각각_이력이_남고_누적된다() {
+        WorkRecord record = inProgressRecord();
+
+        record.startBreak(at(12, 0));
+        record.endBreak(at(12, 30));   // 30분
+
+        record.startBreak(at(15, 0));
+        record.endBreak(at(15, 20));   // 20분
+
+        record.clockOut(at(18, 0));
+
+        assertThat(record.getBreaks()).hasSize(2);
+        assertThat(record.getBreakMinutes()).isEqualTo(50);
+        assertThat(record.getTotalWorkMinutes()).isEqualTo(540);   // 9:00 ~ 18:00
+        assertThat(record.getActualWorkMinutes()).isEqualTo(490);
     }
 
     @Test
     void 휴게_중에는_휴게_시작과_퇴근이_불가능하다() {
         WorkRecord record = inProgressRecord();
-        record.startBreak();
+        record.startBreak(at(12, 0));
 
-        assertThatThrownBy(record::startBreak)
+        assertThatThrownBy(() -> record.startBreak(at(12, 10)))
                 .isInstanceOf(IllegalStateException.class);
 
-        assertThatThrownBy(() -> record.clockOut(LocalDateTime.of(2026, 7, 13, 18, 0)))
+        assertThatThrownBy(() -> record.clockOut(at(18, 0)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    void 퇴근하면_상태가_완료되고_집계가_확정된다() {
+    void 수동_입력된_휴게_쌍으로_교체할_수_있다() {
         WorkRecord record = WorkRecord.builder()
-                .workDate(LocalDate.of(2026, 7, 13))
-                .clockInTime(LocalDateTime.of(2026, 7, 13, 9, 0))
+                .workDate(DATE)
+                .clockInTime(at(9, 0))
+                .clockOutTime(at(18, 0))
                 .appliedHourlyWage(10320)
                 .appliedJobTitle("알바생")
-                .status(WorkStatus.IN_PROGRESS)
-                .totalBreakMinutes(30) // 휴게 30분 누적 상태
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
                 .build();
 
-        record.clockOut(LocalDateTime.of(2026, 7, 13, 17, 0)); // 8시간 근무
-
-        assertThat(record.getStatus()).isEqualTo(WorkStatus.COMPLETED);
-        assertThat(record.getTotalWorkedMinutes()).isEqualTo(480);
-        assertThat(record.getBreakMinutes()).isEqualTo(30);
-        assertThat(record.getNetWorkedMinutes()).isEqualTo(450);
-    }
-
-    @Test
-    void 수동_입력된_휴게_쌍으로_누적_휴게를_설정할_수_있다() {
-        WorkRecord record = WorkRecord.builder()
-                .workDate(LocalDate.of(2026, 7, 13))
-                .clockInTime(LocalDateTime.of(2026, 7, 13, 9, 0))
-                .breakStartTime(LocalDateTime.of(2026, 7, 13, 12, 0))
-                .breakEndTime(LocalDateTime.of(2026, 7, 13, 13, 0))
-                .clockOutTime(LocalDateTime.of(2026, 7, 13, 18, 0))
-                .appliedHourlyWage(10320)
-                .appliedJobTitle("알바생")
-                .status(WorkStatus.COMPLETED)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
-                .build();
-
-        record.applyBreakFromTimes();
-        record.recalculateMinutes();
+        record.replaceBreaks(at(12, 0), at(13, 0));
+        record.validateTimes();
 
         assertThat(record.getBreakMinutes()).isEqualTo(60);
-        assertThat(record.getTotalWorkedMinutes()).isEqualTo(540);
-        assertThat(record.getNetWorkedMinutes()).isEqualTo(480);
+        assertThat(record.getActualWorkMinutes()).isEqualTo(480);
+        assertThat(record.getBreakStartTime()).isEqualTo(at(12, 0));
+        assertThat(record.getBreakEndTime()).isEqualTo(at(13, 0));
     }
 
     @Test
     void 퇴근이_출근보다_빠르면_검증에_실패한다() {
         WorkRecord record = WorkRecord.builder()
-                .workDate(LocalDate.of(2026, 7, 13))
-                .clockInTime(LocalDateTime.of(2026, 7, 13, 18, 0))
-                .clockOutTime(LocalDateTime.of(2026, 7, 13, 9, 0)) // 출근보다 빠름
+                .workDate(DATE)
+                .clockInTime(at(18, 0))
+                .clockOutTime(at(9, 0)) // 출근보다 빠름
                 .appliedHourlyWage(10320)
                 .appliedJobTitle("알바생")
-                .status(WorkStatus.IN_PROGRESS)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
                 .build();
 
         assertThatThrownBy(record::validateTimes)
@@ -116,64 +107,54 @@ class WorkRecordTest {
     }
 
     @Test
-    void 시간으로부터_상태를_재도출한다() {
+    void 근무_구간_밖의_휴게는_검증에_실패한다() {
         WorkRecord record = WorkRecord.builder()
-                .workDate(LocalDate.of(2026, 7, 13))
-                .clockInTime(LocalDateTime.of(2026, 7, 13, 9, 0))
-                .clockOutTime(LocalDateTime.of(2026, 7, 13, 18, 0))
+                .workDate(DATE)
+                .clockInTime(at(9, 0))
+                .clockOutTime(at(18, 0))
                 .appliedHourlyWage(10320)
                 .appliedJobTitle("알바생")
-                .status(WorkStatus.IN_PROGRESS) // 퇴근 시간과 불일치한 상태
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
                 .build();
 
-        record.refreshStatus();
+        record.replaceBreaks(at(8, 0), at(8, 30)); // 출근 전 휴게
 
-        assertThat(record.getStatus()).isEqualTo(WorkStatus.COMPLETED);
+        assertThatThrownBy(record::validateTimes)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("휴게");
     }
 
     @Test
     void 미퇴근_근무는_자동_마감된다() {
         WorkRecord record = WorkRecord.builder()
-                .workDate(LocalDate.of(2026, 7, 12))
-                .clockInTime(LocalDateTime.of(2026, 7, 12, 18, 0))
+                .workDate(DATE)
+                .clockInTime(at(18, 0))
                 .appliedHourlyWage(10320)
                 .appliedJobTitle("알바생")
-                .status(WorkStatus.IN_PROGRESS)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
                 .build();
 
         record.autoClose();
 
         assertThat(record.getStatus()).isEqualTo(WorkStatus.COMPLETED);
-        assertThat(record.getClockOutTime()).isEqualTo(LocalDateTime.of(2026, 7, 12, 23, 59));
-        assertThat(record.getTotalWorkedMinutes()).isEqualTo(359); // 18:00 ~ 23:59
+        assertThat(record.getClockOutTime()).isEqualTo(at(23, 59));
+        assertThat(record.getTotalWorkMinutes()).isEqualTo(359); // 18:00 ~ 23:59
         assertThat(record.getMemo()).contains("미퇴근 자동 마감");
     }
 
     @Test
     void 휴게_중에_방치된_근무는_휴게를_마감_시각까지로_보고_자동_마감된다() {
         WorkRecord record = WorkRecord.builder()
-                .workDate(LocalDate.of(2026, 7, 12))
-                .clockInTime(LocalDateTime.of(2026, 7, 12, 18, 0))
-                .breakStartTime(LocalDateTime.of(2026, 7, 12, 20, 0))
+                .workDate(DATE)
+                .clockInTime(at(18, 0))
                 .appliedHourlyWage(10320)
                 .appliedJobTitle("알바생")
-                .status(WorkStatus.ON_BREAK)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
                 .build();
+        record.startBreak(at(20, 0));
 
         record.autoClose();
 
         assertThat(record.getStatus()).isEqualTo(WorkStatus.COMPLETED);
-        assertThat(record.getBreakMinutes()).isEqualTo(239);      // 20:00 ~ 23:59
-        assertThat(record.getNetWorkedMinutes()).isEqualTo(120);  // 18:00 ~ 20:00
+        assertThat(record.getBreakMinutes()).isEqualTo(239);       // 20:00 ~ 23:59
+        assertThat(record.getActualWorkMinutes()).isEqualTo(120);  // 18:00 ~ 20:00
     }
 
     @Test
@@ -182,6 +163,23 @@ class WorkRecordTest {
 
         assertThat(record.getTotalWorkMinutes()).isNull();
         assertThat(record.getActualWorkMinutes()).isNull();
-        assertThat(record.isActive()).isTrue();
+    }
+
+    @Test
+    void 부분_수정은_null_필드를_기존_값으로_유지한다() {
+        WorkRecord record = WorkRecord.builder()
+                .workDate(DATE)
+                .clockInTime(at(9, 0))
+                .clockOutTime(at(18, 0))
+                .memo("원래 메모")
+                .appliedHourlyWage(10320)
+                .appliedJobTitle("알바생")
+                .build();
+
+        record.updateManually(null, at(19, 0), null);
+
+        assertThat(record.getClockInTime()).isEqualTo(at(9, 0));   // 유지
+        assertThat(record.getClockOutTime()).isEqualTo(at(19, 0)); // 변경
+        assertThat(record.getMemo()).isEqualTo("원래 메모");        // 유지
     }
 }

@@ -1,7 +1,7 @@
 package com.example.PartTimeHR.workrecord.domain;
 
 import com.example.PartTimeHR.employee.domain.Employee;
-import com.example.PartTimeHR.workrecord.domain.WorkRecord;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -11,10 +11,12 @@ import java.util.Optional;
 
 public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
 
-    // 직원의 특정 날짜 모든 근무 기록 조회
+    // 집계가 breaks에서 파생되므로 조회 시 함께 로딩 (N+1 방지)
+
+    @EntityGraph(attributePaths = "breaks")
     List<WorkRecord> findAllByEmployeeAndWorkDate(Employee employee, LocalDate workDate);
 
-    // 직원의 특정 기간 근무 기록 조회
+    @EntityGraph(attributePaths = "breaks")
     List<WorkRecord> findAllByEmployeeAndWorkDateBetween(
             Employee employee,
             LocalDate startDate,
@@ -22,6 +24,7 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
     );
 
     // 현재 진행 중인 근무 조회
+    @EntityGraph(attributePaths = "breaks")
     Optional<WorkRecord> findFirstByEmployeeAndClockOutTimeIsNullOrderByClockInTimeDesc(
             Employee employee
     );
@@ -29,17 +32,11 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
     // 퇴근하지 않은 근무 존재 여부 확인
     boolean existsByEmployeeAndClockOutTimeIsNull(Employee employee);
 
-    // 직원의 전체 근무 기록 조회
-    List<WorkRecord> findAllByEmployee(Employee employee);
-
-    // 직원 삭제 시 함께 정리
-    void deleteAllByEmployee(Employee employee);
-
-    // 집계 시 employee를 함께 읽으므로 fetch join으로 N+1 방지
     @Query("""
             select wr
             from WorkRecord wr
             join fetch wr.employee
+            left join fetch wr.breaks
             where wr.employee.store.id = :storeId
               and wr.workDate = :workDate
             """)
@@ -49,8 +46,12 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
             select wr
             from WorkRecord wr
             join fetch wr.employee
+            left join fetch wr.breaks
             where wr.employee.store.id = :storeId
               and wr.workDate between :startDate and :endDate
             """)
     List<WorkRecord> findAllByStoreAndWorkDateBetween(Long storeId, LocalDate startDate, LocalDate endDate);
+
+    // 직원 삭제 시 함께 정리
+    void deleteAllByEmployee(Employee employee);
 }

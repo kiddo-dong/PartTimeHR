@@ -1,7 +1,6 @@
 package com.example.PartTimeHR.payroll.domain;
 
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
-import com.example.PartTimeHR.workrecord.domain.WorkStatus;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -23,10 +22,6 @@ class PayrollCalculatorTest {
                 .clockOutTime(workDate.atTime(9, 0).plusMinutes(netMinutes))
                 .appliedHourlyWage(wage)
                 .appliedJobTitle("알바생")
-                .status(WorkStatus.COMPLETED)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(netMinutes)
-                .netWorkedMinutes(netMinutes)
                 .build();
     }
 

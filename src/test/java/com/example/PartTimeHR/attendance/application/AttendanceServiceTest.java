@@ -10,7 +10,6 @@ import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.application.StoreAccessService;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
-import com.example.PartTimeHR.workrecord.domain.WorkStatus;
 import com.example.PartTimeHR.workrecord.domain.WorkRecordRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -130,10 +129,6 @@ class AttendanceServiceTest {
                 .clockOutTime(LocalDateTime.of(2026, 1, 10, 18, 0))
                 .appliedHourlyWage(11000)
                 .appliedJobTitle("Crew")
-                .status(WorkStatus.COMPLETED)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(525)
-                .netWorkedMinutes(525)
                 .build();
 
         when(storeAccessService.getMyStore(storeId, employerId)).thenReturn(store);
@@ -186,10 +181,6 @@ class AttendanceServiceTest {
                 .clockOutTime(LocalDateTime.of(2026, 1, 11, 18, 0))
                 .appliedHourlyWage(11000)
                 .appliedJobTitle("Crew")
-                .status(WorkStatus.COMPLETED)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(540)
-                .netWorkedMinutes(540)
                 .build();
 
         when(storeAccessService.getMyStore(storeId, employerId)).thenReturn(store);

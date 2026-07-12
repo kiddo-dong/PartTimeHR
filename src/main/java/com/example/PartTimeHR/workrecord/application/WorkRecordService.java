@@ -6,12 +6,10 @@ import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.application.StoreAccessService;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
 import com.example.PartTimeHR.workrecord.domain.WorkRecordNotFoundException;
-import com.example.PartTimeHR.workrecord.domain.WorkStatus;
+import com.example.PartTimeHR.workrecord.domain.WorkRecordRepository;
 import com.example.PartTimeHR.workrecord.presentation.dto.CreateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.presentation.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.presentation.dto.WorkRecordResponse;
-import com.example.PartTimeHR.workrecord.application.WorkRecordMapper;
-import com.example.PartTimeHR.workrecord.domain.WorkRecordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,43 +32,23 @@ public class WorkRecordService {
        원클릭 (출근 / 휴게 / 퇴근) - 사장 컨텍스트
        ====================== */
 
-    // 출근
-    public WorkRecordResponse clockIn(
-            Long employerId,
-            Long storeId,
-            Long employeeId
-    ) {
+    public WorkRecordResponse clockIn(Long employerId, Long storeId, Long employeeId) {
         return doClockIn(validateAccess(employerId, storeId, employeeId));
     }
 
-    // 휴게 시작
-    public WorkRecordResponse startBreak(
-            Long employerId,
-            Long storeId,
-            Long employeeId
-    ) {
+    public WorkRecordResponse startBreak(Long employerId, Long storeId, Long employeeId) {
         WorkRecord record = getActiveRecordOf(validateAccess(employerId, storeId, employeeId));
-        record.startBreak();
+        record.startBreak(LocalDateTime.now());
         return workRecordMapper.toResponse(record);
     }
 
-    // 휴게 종료
-    public WorkRecordResponse endBreak(
-            Long employerId,
-            Long storeId,
-            Long employeeId
-    ) {
+    public WorkRecordResponse endBreak(Long employerId, Long storeId, Long employeeId) {
         WorkRecord record = getActiveRecordOf(validateAccess(employerId, storeId, employeeId));
-        record.endBreak();
+        record.endBreak(LocalDateTime.now());
         return workRecordMapper.toResponse(record);
     }
 
-    // 퇴근
-    public WorkRecordResponse clockOut(
-            Long employerId,
-            Long storeId,
-            Long employeeId
-    ) {
+    public WorkRecordResponse clockOut(Long employerId, Long storeId, Long employeeId) {
         WorkRecord record = getActiveRecordOf(validateAccess(employerId, storeId, employeeId));
         record.clockOut(LocalDateTime.now());
         return workRecordMapper.toResponse(record);
@@ -80,26 +58,22 @@ public class WorkRecordService {
        원클릭 (출근 / 휴게 / 퇴근) - 직원 본인
        ====================== */
 
-    // 출근 (본인)
     public WorkRecordResponse clockInSelf(Long employeeId) {
         return doClockIn(employeeAccessService.getEmployeeOrThrow(employeeId));
     }
 
-    // 휴게 시작 (본인)
     public WorkRecordResponse startBreakSelf(Long employeeId) {
         WorkRecord record = getActiveRecordOf(employeeAccessService.getEmployeeOrThrow(employeeId));
-        record.startBreak();
+        record.startBreak(LocalDateTime.now());
         return workRecordMapper.toResponse(record);
     }
 
-    // 휴게 종료 (본인)
     public WorkRecordResponse endBreakSelf(Long employeeId) {
         WorkRecord record = getActiveRecordOf(employeeAccessService.getEmployeeOrThrow(employeeId));
-        record.endBreak();
+        record.endBreak(LocalDateTime.now());
         return workRecordMapper.toResponse(record);
     }
 
-    // 퇴근 (본인)
     public WorkRecordResponse clockOutSelf(Long employeeId) {
         WorkRecord record = getActiveRecordOf(employeeAccessService.getEmployeeOrThrow(employeeId));
         record.clockOut(LocalDateTime.now());
@@ -128,7 +102,6 @@ public class WorkRecordService {
                         throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
                     }
                     // 이전 날짜의 미퇴근 근무는 자동 마감하고 새 출근을 허용
-                    // (dirty checking으로 저장)
                     openRecord.autoClose();
                 });
 
@@ -138,10 +111,6 @@ public class WorkRecordService {
                 .clockInTime(LocalDateTime.now())
                 .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
                 .appliedJobTitle(employee.getPayPolicy().getJobTitle())
-                .status(WorkStatus.IN_PROGRESS)
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
                 .build();
 
         workRecordRepository.save(record);
@@ -149,7 +118,7 @@ public class WorkRecordService {
     }
 
     /* ======================
-       수동 생성 (관리자 입력)
+       수동 생성/수정/삭제 (관리자 입력)
        ====================== */
 
     public WorkRecordResponse createManual(
@@ -171,23 +140,14 @@ public class WorkRecordService {
                 .employee(employee)
                 .workDate(request.getWorkDate())
                 .clockInTime(request.getClockInTime())
-                .breakStartTime(request.getBreakStartTime())
-                .breakEndTime(request.getBreakEndTime())
                 .clockOutTime(request.getClockOutTime())
                 .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
                 .appliedJobTitle(employee.getPayPolicy().getJobTitle())
-                .status(WorkStatus.IN_PROGRESS)
                 .memo(request.getMemo())
-                .totalBreakMinutes(0)
-                .totalWorkedMinutes(0)
-                .netWorkedMinutes(0)
                 .build();
 
-        // 시간 순서 검증 → 상태 도출 → 누적 휴게 반영 → 집계 확정
+        record.replaceBreaks(request.getBreakStartTime(), request.getBreakEndTime());
         record.validateTimes();
-        record.refreshStatus();
-        record.applyBreakFromTimes();
-        record.recalculateMinutes();
 
         workRecordRepository.save(record);
         return workRecordMapper.toResponse(record);
@@ -204,24 +164,44 @@ public class WorkRecordService {
         // 이 가게 소속 직원의 기록인지 검증
         storeAccessService.validateEmployeeInStore(store, record.getEmployee());
 
-        // MapStruct로 request 덮어쓰기 (부분 수정)
-        workRecordMapper.updateFromRequest(request, record);
+        // 부분 수정 (null 필드는 기존 값 유지)
+        record.updateManually(
+                request.getClockInTime(),
+                request.getClockOutTime(),
+                request.getMemo()
+        );
 
-        // 수정 결과의 시간 순서 검증 + 상태 재도출
-        record.validateTimes();
-        record.refreshStatus();
-
-        // 휴게 시간이 수정된 경우에만 누적 휴게를 입력된 쌍으로 덮어쓴다
-        // (다회 휴게가 누적된 기록에서 다른 필드만 고칠 때 누적값 보존)
+        // 휴게 필드를 보낸 경우에만 휴게 목록을 입력된 쌍으로 교체
         if (request.getBreakStartTime() != null || request.getBreakEndTime() != null) {
-            record.applyBreakFromTimes();
+            record.replaceBreaks(request.getBreakStartTime(), request.getBreakEndTime());
         }
 
-        // 시간이 바뀌었으므로 집계 재계산
-        record.recalculateMinutes();
+        record.validateTimes();
 
         // dirty checking으로 자동 저장
         return workRecordMapper.toResponse(record);
+    }
+
+    @Transactional
+    public void deleteWorkRecord(
+            Long employerId,
+            Long storeId,
+            Long workRecordId
+    ) {
+        // 가게 소유 확인 (사장 권한 검증)
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // 근무 기록 조회
+        WorkRecord record = workRecordRepository.findById(workRecordId)
+                .orElseThrow(() ->
+                        new WorkRecordNotFoundException("해당 근무 기록이 존재하지 않습니다.")
+                );
+
+        // 해당 근무 기록이 이 가게 소속인지 검증
+        storeAccessService.validateEmployeeInStore(store, record.getEmployee());
+
+        // 삭제 (휴게는 cascade로 함께 삭제)
+        workRecordRepository.delete(record);
     }
 
     /* ======================
@@ -246,29 +226,5 @@ public class WorkRecordService {
                 .orElseThrow(() ->
                         new IllegalStateException("진행 중인 근무 기록이 없습니다.")
                 );
-    }
-
-    // 삭제
-    @Transactional
-    public void deleteWorkRecord(
-            Long employerId,
-            Long storeId,
-            Long workRecordId
-    ) {
-        // 가게 소유 확인 (사장 권한 검증)
-        Store store = storeAccessService.getMyStore(storeId, employerId);
-
-        // 근무 기록 조회
-        WorkRecord record = workRecordRepository.findById(workRecordId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("해당 근무 기록이 존재하지 않습니다.")
-                );
-
-        // 해당 근무 기록이 이 가게 소속인지 검증
-        Employee employee = record.getEmployee();
-        storeAccessService.validateEmployeeInStore(store, employee);
-
-        // 삭제
-        workRecordRepository.delete(record);
     }
 }

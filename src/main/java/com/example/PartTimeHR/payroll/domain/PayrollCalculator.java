@@ -35,7 +35,7 @@ public class PayrollCalculator {
 
     /** 기록 1건의 기본급 (실근무 분 × 시급 스냅샷) */
     public static long recordPay(WorkRecord record) {
-        return Math.round(record.getNetWorkedMinutes() * record.getAppliedHourlyWage() / 60.0);
+        return Math.round(record.getActualWorkMinutes() * record.getAppliedHourlyWage() / 60.0);
     }
 
     /** 퇴근 완료된 기록들로 한 직원의 급여를 계산한다 */
@@ -54,11 +54,11 @@ public class PayrollCalculator {
         for (WorkRecord record : completedRecords) {
             long pay = recordPay(record);
 
-            totalNetMinutes += record.getNetWorkedMinutes();
+            totalNetMinutes += record.getActualWorkMinutes().intValue();
             basePay += pay;
 
             LocalDate weekStart = ScheduleDateCalculator.getWeekStartDate(record.getWorkDate(), weekStartDay);
-            weekMinutes.merge(weekStart, record.getNetWorkedMinutes(), Integer::sum);
+            weekMinutes.merge(weekStart, record.getActualWorkMinutes().intValue(), Integer::sum);
             weekPay.merge(weekStart, pay, Long::sum);
         }
 

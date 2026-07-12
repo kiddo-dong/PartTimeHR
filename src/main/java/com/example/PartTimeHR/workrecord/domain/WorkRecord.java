@@ -7,8 +7,18 @@ import lombok.*;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
-// 출근 기록
+/**
+ * 근무 세션 (출근~퇴근 1회).
+ *
+ * 설계 원칙: 저장하는 것은 사실(시각)뿐이다.
+ * - 상태(status)는 clockOutTime과 열린 휴게 여부에서 유도 → 불일치가 불가능
+ * - 휴게는 WorkBreak(1:N)로 이력 보존, 누적 분은 파생값
+ * - 총/실 근무 분도 파생값 (급여·통계·응답이 같은 근원을 사용)
+ */
 @Entity
 @Table(name = "work_record")
 @Getter
@@ -17,69 +27,44 @@ import java.time.LocalDateTime;
 @Builder
 public class WorkRecord {
 
-    // PK
+    private static final String AUTO_CLOSE_MEMO = "[미퇴근 자동 마감]";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 직원
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    // 근무 날짜
     @Column(name = "work_date", nullable = false)
     private LocalDate workDate;
 
-    // 출근 시간
     @Column(name = "clock_in_time", nullable = false)
     private LocalDateTime clockInTime;
 
-    // 휴게 시작 시간 (선택)
-    @Column(name = "break_start_time")
-    private LocalDateTime breakStartTime;
-
-    // 휴게 끝 시간 (선택)
-    @Column(name = "break_end_time")
-    private LocalDateTime breakEndTime;
-
-    // 퇴근 시간 (선택)
+    // null이면 근무 진행 중
     @Column(name = "clock_out_time")
     private LocalDateTime clockOutTime;
 
-    // 스냅샷: 근무 당시 정책 정보
+    // 스냅샷: 근무 당시 정책 정보 (정책이 나중에 바뀌어도 급여 이력 안전)
     @Column(nullable = false)
-    private int appliedHourlyWage;   // 그날 기준 시급
+    private int appliedHourlyWage;
 
     @Column(nullable = false, length = 50)
-    private String appliedJobTitle;   // 그날 기준 직급
+    private String appliedJobTitle;
 
-    // 근무 상태
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private WorkStatus status;
-
-    // 메모 (고용주가 수정 시 사용)
+    // 메모 (고용주 수정, 자동 마감 표시 등)
     @Column(length = 500)
     private String memo;
 
-    // 휴게 누적 시간 (분) 없으면 0
-    @Column(name = "total_break_minutes", nullable = false)
-    private int totalBreakMinutes;
+    @OneToMany(mappedBy = "workRecord", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<WorkBreak> breaks = new ArrayList<>();
 
-    // 총 근무 시간 (분) 퇴근 시 확정
-    @Column(name = "total_worked_minutes", nullable = false)
-    private int totalWorkedMinutes;
-
-    // 실근무 시간 (분)
-    @Column(name = "net_worked_minutes", nullable = false)
-    private int netWorkedMinutes;
-
-    // 생성 시간
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 수정 시간
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -93,172 +78,161 @@ public class WorkRecord {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /* ======================
+       파생 상태
+       ====================== */
+
+    public WorkStatus getStatus() {
+        if (clockOutTime != null) {
+            return WorkStatus.COMPLETED;
+        }
+        if (findOpenBreak() != null) {
+            return WorkStatus.ON_BREAK;
+        }
+        return WorkStatus.IN_PROGRESS;
+    }
 
     /** 현재 진행 중인 근무인가 */
     public boolean isActive() {
         return clockOutTime == null;
     }
 
-    /**
-     * 휴게 시작 가능 여부.
-     * 근무 중이면 언제든 가능 — 휴게 시간은 totalBreakMinutes에 누적되므로
-     * 하루에 여러 번 쉴 수 있다. (breakStartTime/breakEndTime은 마지막 휴게의 시각)
-     */
-    public boolean canStartBreak() {
-        return status == WorkStatus.IN_PROGRESS;
-    }
-
-    /** 휴게 종료 가능 여부 */
-    public boolean canEndBreak() {
-        return status == WorkStatus.ON_BREAK;
-    }
-
-    /** 퇴근 가능 여부 (휴게 중이면 종료 후 퇴근) */
-    public boolean canClockOut() {
-        return status == WorkStatus.IN_PROGRESS;
+    private WorkBreak findOpenBreak() {
+        return breaks.stream()
+                .filter(WorkBreak::isOpen)
+                .findFirst()
+                .orElse(null);
     }
 
     /* ======================
-       상태 변경 메서드
+       상태 변경
        ====================== */
 
-    /** 휴게 시작 */
-    public void startBreak() {
-        if (!canStartBreak()) {
+    /** 휴게 시작 - 근무 중이면 몇 번이든 가능 */
+    public void startBreak(LocalDateTime now) {
+        if (getStatus() != WorkStatus.IN_PROGRESS) {
             throw new IllegalStateException("휴게를 시작할 수 없는 상태입니다.");
         }
-        this.breakStartTime = LocalDateTime.now();
-        this.status = WorkStatus.ON_BREAK;
+        breaks.add(WorkBreak.open(this, now));
     }
 
-    /** 휴게 종료 — 이번 휴게 시간을 누적하고 근무 상태로 복귀 */
-    public void endBreak() {
-        if (!canEndBreak()) {
+    /** 휴게 종료 */
+    public void endBreak(LocalDateTime now) {
+        WorkBreak open = findOpenBreak();
+        if (clockOutTime != null || open == null) {
             throw new IllegalStateException("휴게를 종료할 수 없는 상태입니다.");
         }
-        this.breakEndTime = LocalDateTime.now();
-        this.totalBreakMinutes += (int) Duration.between(breakStartTime, breakEndTime).toMinutes();
-        this.status = WorkStatus.IN_PROGRESS;
+        open.close(now);
     }
 
-    /** 퇴근 */
+    /** 퇴근 (휴게 중이면 종료 후 퇴근) */
     public void clockOut(LocalDateTime now) {
-        if (!canClockOut()) {
+        if (getStatus() != WorkStatus.IN_PROGRESS) {
             throw new IllegalStateException("퇴근할 수 없는 상태입니다.");
         }
         this.clockOutTime = now;
-        this.status = WorkStatus.COMPLETED;
-
-        recalculateMinutes();
     }
 
-    private static final String AUTO_CLOSE_MEMO = "[미퇴근 자동 마감]";
-
     /**
-     * 미퇴근 자동 마감 - 직원이 퇴근을 찍지 않은 채 다음 출근을 시도할 때 호출.
-     * 근무일 자정 직전(23:59)을 퇴근 시각으로 확정하고 메모에 표시해
-     * 사장이 나중에 수동 수정으로 바로잡을 수 있게 한다.
+     * 미퇴근 자동 마감 - 퇴근을 찍지 않은 채 다음 출근을 시도할 때 호출.
+     * 근무일 자정 직전(23:59)으로 마감하고 메모에 표시한다.
+     * 열린 휴게는 마감 시각까지를 휴게로 본다.
      */
     public void autoClose() {
         LocalDateTime closeTime = workDate.atTime(23, 59);
-
-        // 출근이 23:59 이후인 극단 케이스 - 0분 근무로 마감
         if (!clockInTime.isBefore(closeTime)) {
             closeTime = clockInTime;
         }
 
-        // 휴게를 끝내지 않은 채 방치된 경우: 휴게 시작~마감까지를 휴게로 본다
-        if (status == WorkStatus.ON_BREAK) {
-            if (breakStartTime.isBefore(closeTime)) {
-                this.totalBreakMinutes += (int) Duration.between(breakStartTime, closeTime).toMinutes();
-                this.breakEndTime = closeTime;
-            } else {
-                this.breakEndTime = breakStartTime;
-            }
+        WorkBreak open = findOpenBreak();
+        if (open != null) {
+            open.close(open.getStartTime().isBefore(closeTime) ? closeTime : open.getStartTime());
         }
 
         this.clockOutTime = closeTime;
-        this.status = WorkStatus.COMPLETED;
         this.memo = (memo == null || memo.isBlank())
                 ? AUTO_CLOSE_MEMO
                 : memo + " " + AUTO_CLOSE_MEMO;
-
-        recalculateMinutes();
     }
 
-    /**
-     * 시간 필드 간의 순서 검증. 수동 생성/수정 시 호출.
-     * (검증 없이는 퇴근 < 출근 같은 입력으로 음수 근무 시간이 저장될 수 있다)
-     */
+    /* ======================
+       수동 생성/수정 (관리자)
+       ====================== */
+
+    /** 부분 수정: null인 필드는 기존 값 유지 */
+    public void updateManually(LocalDateTime clockInTime, LocalDateTime clockOutTime, String memo) {
+        if (clockInTime != null) this.clockInTime = clockInTime;
+        if (clockOutTime != null) this.clockOutTime = clockOutTime;
+        if (memo != null) this.memo = memo;
+    }
+
+    /** 휴게 전체를 입력된 한 쌍으로 교체 (수동 입력용) */
+    public void replaceBreaks(LocalDateTime breakStart, LocalDateTime breakEnd) {
+        breaks.clear();
+        if (breakStart != null) {
+            breaks.add(breakEnd == null
+                    ? WorkBreak.open(this, breakStart)
+                    : WorkBreak.closed(this, breakStart, breakEnd));
+        }
+    }
+
+    /** 시간 필드 간의 순서 검증. 수동 생성/수정 시 호출 */
     public void validateTimes() {
         if (clockOutTime != null && !clockInTime.isBefore(clockOutTime)) {
             throw new IllegalArgumentException("퇴근 시간은 출근 시간 이후여야 합니다.");
         }
-        if (breakStartTime != null && breakStartTime.isBefore(clockInTime)) {
-            throw new IllegalArgumentException("휴게는 출근 이후에 시작해야 합니다.");
-        }
-        if (breakStartTime != null && breakEndTime != null && breakEndTime.isBefore(breakStartTime)) {
-            throw new IllegalArgumentException("휴게 종료는 휴게 시작 이후여야 합니다.");
-        }
-        if (clockOutTime != null && breakEndTime != null && breakEndTime.isAfter(clockOutTime)) {
-            throw new IllegalArgumentException("휴게는 퇴근 이전에 끝나야 합니다.");
-        }
-    }
-
-    /**
-     * 시간 필드로부터 상태를 다시 도출한다. 수동 생성/수정 시 호출.
-     * (수정으로 퇴근 시간을 넣었는데 status가 IN_PROGRESS로 남는 불일치 방지)
-     */
-    public void refreshStatus() {
-        if (clockOutTime != null) {
-            this.status = WorkStatus.COMPLETED;
-        } else if (breakStartTime != null && breakEndTime == null) {
-            this.status = WorkStatus.ON_BREAK;
-        } else {
-            this.status = WorkStatus.IN_PROGRESS;
+        for (WorkBreak b : breaks) {
+            if (b.getStartTime().isBefore(clockInTime)) {
+                throw new IllegalArgumentException("휴게는 출근 이후에 시작해야 합니다.");
+            }
+            if (b.getEndTime() != null && b.getEndTime().isBefore(b.getStartTime())) {
+                throw new IllegalArgumentException("휴게 종료는 휴게 시작 이후여야 합니다.");
+            }
+            if (clockOutTime != null && b.getEndTime() != null && b.getEndTime().isAfter(clockOutTime)) {
+                throw new IllegalArgumentException("휴게는 퇴근 이전에 끝나야 합니다.");
+            }
         }
     }
 
-    /**
-     * 수동 입력된 휴게 시작/종료 쌍으로 누적 휴게 시간을 덮어쓴다.
-     * 관리자가 근무 기록을 직접 생성/수정할 때만 사용.
-     */
-    public void applyBreakFromTimes() {
-        if (breakStartTime != null && breakEndTime != null) {
-            this.totalBreakMinutes = (int) Duration.between(breakStartTime, breakEndTime).toMinutes();
-        }
-    }
+    /* ======================
+       파생 집계 (급여·통계·응답 공통 근원)
+       ====================== */
 
-    /**
-     * 근무 시간 집계를 확정한다. (totalBreakMinutes는 이미 누적된 값을 사용)
-     * 퇴근 시점과, 고용주가 기록을 수동으로 수정한 시점에 호출한다.
-     */
-    public void recalculateMinutes() {
-        Long total = getTotalWorkMinutes();
-        this.totalWorkedMinutes = total == null ? 0 : total.intValue();
-
-        Long net = getActualWorkMinutes();
-        this.netWorkedMinutes = net == null ? 0 : net.intValue();
-    }
-
-
+    /** 총 구속 시간(분). 퇴근 전이면 null */
     public Long getTotalWorkMinutes() {
-        if (clockInTime == null || clockOutTime == null) {
+        if (clockOutTime == null) {
             return null;
         }
         return Duration.between(clockInTime, clockOutTime).toMinutes();
     }
 
-    /** 누적 휴게 시간 (분) */
-    public Long getBreakMinutes() {
-        return (long) totalBreakMinutes;
+    /** 누적 휴게 시간(분). 종료된 휴게만 합산 */
+    public long getBreakMinutes() {
+        return breaks.stream().mapToLong(WorkBreak::minutes).sum();
     }
 
+    /** 실근무 시간(분). 퇴근 전이면 null */
     public Long getActualWorkMinutes() {
         Long total = getTotalWorkMinutes();
-        if (total == null) return null;
+        if (total == null) {
+            return null;
+        }
         return Math.max(total - getBreakMinutes(), 0L);
     }
+
+    /* 응답 호환용: 마지막 휴게의 시작/종료 시각 */
+
+    public LocalDateTime getBreakStartTime() {
+        return lastBreak() == null ? null : lastBreak().getStartTime();
+    }
+
+    public LocalDateTime getBreakEndTime() {
+        return lastBreak() == null ? null : lastBreak().getEndTime();
+    }
+
+    private WorkBreak lastBreak() {
+        return breaks.stream()
+                .max(Comparator.comparing(WorkBreak::getStartTime))
+                .orElse(null);
+    }
 }
-
-

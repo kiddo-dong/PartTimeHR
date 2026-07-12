@@ -1,18 +1,14 @@
 package com.example.PartTimeHR.workrecord.application;
 
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
-import com.example.PartTimeHR.workrecord.presentation.dto.UpdateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.presentation.dto.WorkRecordResponse;
-import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
 
 @Mapper(componentModel = "spring")
 public interface WorkRecordMapper {
 
-    // ===== response 변환 =====
+    // status/집계/휴게 시각은 전부 엔티티의 파생 게터에서 나온다
     @Mapping(target = "employeeId", source = "employee.id")
     @Mapping(target = "employeeName", source = "employee.name")
     @Mapping(target = "status", expression = "java(workRecord.getStatus().name())")
@@ -20,8 +16,4 @@ public interface WorkRecordMapper {
     @Mapping(target = "breakMinutes", expression = "java(workRecord.getBreakMinutes())")
     @Mapping(target = "actualWorkMinutes", expression = "java(workRecord.getActualWorkMinutes())")
     WorkRecordResponse toResponse(WorkRecord workRecord);
-
-    // ===== 수정용 (부분 수정: null 필드는 기존 값 유지) =====
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateFromRequest(UpdateWorkRecordRequest request, @MappingTarget WorkRecord record);
 }
