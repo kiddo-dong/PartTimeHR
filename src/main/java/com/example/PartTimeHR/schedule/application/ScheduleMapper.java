@@ -1,21 +1,12 @@
 package com.example.PartTimeHR.schedule.application;
 
 import com.example.PartTimeHR.schedule.domain.Schedule;
-import com.example.PartTimeHR.schedule.presentation.dto.ScheduleCreateRequest;
 import com.example.PartTimeHR.schedule.presentation.dto.ScheduleResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface ScheduleMapper {
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "store", ignore = true)
-    @Mapping(target = "employee", ignore = true)
-    @Mapping(target = "confirmed", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    Schedule toEntity(ScheduleCreateRequest request);
 
     @Mapping(source = "id", target = "scheduleId")
     @Mapping(source = "employee.id", target = "employeeId")

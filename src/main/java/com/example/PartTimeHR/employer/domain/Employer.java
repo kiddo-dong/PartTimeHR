@@ -24,18 +24,20 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Employer implements AuthPrincipal {
-    
-    // 수정 가능한 필드에 대한 setter
-    public void setName(String name) {
-        this.name = name;
+
+    /* 비즈니스 */
+    public void updateBasicInfo(String name, String phone) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (phone != null) {
+            this.phone = phone;
+        }
     }
-    
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-    
-    public void setPassword(String password) {
-        this.password = password;
+
+    // 암호화된 비밀번호만 받는다
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
     }
 
     // PK

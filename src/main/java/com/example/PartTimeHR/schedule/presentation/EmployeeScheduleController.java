@@ -24,10 +24,9 @@ public class EmployeeScheduleController {
     // 당일 스케줄 조회
     @GetMapping("/today")
     public ResponseEntity<List<ScheduleResponse>> getToday(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam(defaultValue = "0") int offset
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ){
-        List<ScheduleResponse> responses = employeeScheduleService.getTodaySchedule(userDetails.getId(), offset);
+        List<ScheduleResponse> responses = employeeScheduleService.getTodaySchedule(userDetails.getId());
         return ResponseEntity.ok(responses);
     }
 

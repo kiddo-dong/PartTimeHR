@@ -2,15 +2,12 @@ package com.example.PartTimeHR.employee.application;
 
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.presentation.dto.EmployeeInfoResponse;
-import com.example.PartTimeHR.employee.presentation.dto.UpdateEmployeeRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring")
 public interface EmployeeMapper {
 
     @Mapping(source = "store.id", target = "storeId")
@@ -20,6 +17,4 @@ public interface EmployeeMapper {
     EmployeeInfoResponse toInfoResponse(Employee employee);
 
     List<EmployeeInfoResponse> toInfoResponseList(List<Employee> employees);
-
-        void updateEmployeeFromDto(UpdateEmployeeRequest dto, @MappingTarget Employee entity);
 }

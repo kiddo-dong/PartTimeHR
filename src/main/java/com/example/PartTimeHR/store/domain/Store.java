@@ -11,10 +11,9 @@ import java.util.List;
 
 @Entity
 @Table(name = "store")
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
-@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @Builder
 public class Store {
     @Id
@@ -60,22 +59,19 @@ public class Store {
     }
 
 
-    // 팩토리 메소드
-    public static Store create(
-            String storeName,
-            String storePhone,
-            String storeAddress,
+    /* 비즈니스 */
+    // 부분 수정: null인 필드는 기존 값 유지
+    public void update(
+            String name,
+            String phone,
+            String address,
             Integer weekStartDay,
-            Boolean weeklyPayApplicable,
-            Employer employer
+            Boolean weeklyPayApplicable
     ) {
-        Store store = new Store();
-        store.name = storeName;
-        store.phone = storePhone;
-        store.address = storeAddress;
-        store.weekStartDay = weekStartDay;
-        store.weeklyPayApplicable = weeklyPayApplicable;
-        store.employer = employer;
-        return store;
+        if (name != null) this.name = name;
+        if (phone != null) this.phone = phone;
+        if (address != null) this.address = address;
+        if (weekStartDay != null) this.weekStartDay = weekStartDay;
+        if (weeklyPayApplicable != null) this.weeklyPayApplicable = weeklyPayApplicable;
     }
 }

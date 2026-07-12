@@ -128,7 +128,7 @@ public class EmployerAuthService {
         PasswordResetToken resetToken = findValidToken(token);
 
         Employer employer = resetToken.getEmployer();
-        employer.setPassword(passwordEncoder.encode(newPassword));
+        employer.changePassword(passwordEncoder.encode(newPassword));
 
         // 재사용 방지 (1회용 토큰)
         passwordResetTokenRepository.delete(resetToken);

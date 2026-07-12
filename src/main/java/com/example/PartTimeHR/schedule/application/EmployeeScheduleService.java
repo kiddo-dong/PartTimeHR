@@ -1,16 +1,12 @@
 package com.example.PartTimeHR.schedule.application;
 
 import com.example.PartTimeHR.employee.domain.Employee;
-import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.employee.application.EmployeeAccessService;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.presentation.dto.ScheduleResponse;
-import com.example.PartTimeHR.schedule.application.ScheduleMapper;
 import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
 import com.example.PartTimeHR.schedule.domain.ScheduleDateCalculator;
-import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import com.example.PartTimeHR.store.domain.Store;
-import com.example.PartTimeHR.store.application.StoreAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,27 +18,24 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmployeeScheduleService {
 
-    public final ScheduleRepository scheduleRepository;
-    public final ScheduleMapper scheduleMapper;
-    public final EmployeeAccessService employeeAccessService;
+    private final ScheduleRepository scheduleRepository;
+    private final ScheduleMapper scheduleMapper;
+    private final EmployeeAccessService employeeAccessService;
 
-    // 직원의 일별 스케줄 조회
+    // 직원의 당일 스케줄 조회
     @Transactional(readOnly = true)
-    public List<ScheduleResponse> getTodaySchedule(Long employeeId, int offset){
+    public List<ScheduleResponse> getTodaySchedule(Long employeeId) {
         Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
 
-        Store store = employee.getStore();
-
-        LocalDate today = LocalDate.now();
-
         return scheduleRepository
-                .findByEmployeeAndWorkDate(employee, today)
+                .findByEmployeeAndWorkDate(employee, LocalDate.now())
                 .stream()
                 .map(scheduleMapper::toResponse)
                 .toList();
     }
 
     // 기간 조회
+    @Transactional(readOnly = true)
     public List<ScheduleResponse> getSchedulesByPeriod(Long employeeId, LocalDate startDate, LocalDate endDate) {
         Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
 

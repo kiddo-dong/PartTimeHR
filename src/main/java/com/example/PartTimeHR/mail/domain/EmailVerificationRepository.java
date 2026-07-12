@@ -14,7 +14,5 @@ public interface EmailVerificationRepository extends JpaRepository<EmailVerifica
     @Query("select ev from EmailVerification ev join fetch ev.employer where ev.token = :token")
     Optional<EmailVerification> findByTokenWithEmployer(@Param("token") String token);
 
-    void deleteByEmail(String email);
-
     Optional<EmailVerification> findByEmployerId(Long employerId);
 }

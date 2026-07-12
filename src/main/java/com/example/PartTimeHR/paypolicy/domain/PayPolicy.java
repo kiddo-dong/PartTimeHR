@@ -37,10 +37,10 @@ public class PayPolicy {
 
     private LocalDateTime createdAt;
 
+    // active를 여기서 덮어쓰지 않는다 (비활성 정책 생성이 불가능해짐)
     @PrePersist
     void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.active = true;
     }
 
     public void setDefault(boolean isDefault) {
