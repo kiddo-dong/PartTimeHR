@@ -154,6 +154,22 @@ public class WorkRecord {
         }
         this.clockOutTime = now;
         this.status = WorkStatus.COMPLETED;
+
+        recalculateMinutes();
+    }
+
+    /**
+     * 근무 시간 집계를 확정한다.
+     * 퇴근 시점과, 고용주가 기록을 수동으로 수정한 시점에 호출한다.
+     */
+    public void recalculateMinutes() {
+        this.totalBreakMinutes = getBreakMinutes().intValue();
+
+        Long total = getTotalWorkMinutes();
+        this.totalWorkedMinutes = total == null ? 0 : total.intValue();
+
+        Long net = getActualWorkMinutes();
+        this.netWorkedMinutes = net == null ? 0 : net.intValue();
     }
 
 

@@ -5,6 +5,7 @@ import com.example.PartTimeHR.employee.application.EmployeeAccessService;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.application.StoreAccessService;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
+import com.example.PartTimeHR.workrecord.domain.WorkRecordNotFoundException;
 import com.example.PartTimeHR.workrecord.domain.WorkStatus;
 import com.example.PartTimeHR.workrecord.presentation.dto.CreateWorkRecordRequest;
 import com.example.PartTimeHR.workrecord.presentation.dto.UpdateWorkRecordRequest;
@@ -130,22 +131,31 @@ public class WorkRecordService {
                 .netWorkedMinutes(0)
                 .build();
 
+        // 퇴근 시간까지 함께 입력된 경우 집계를 확정
+        record.recalculateMinutes();
+
         workRecordRepository.save(record);
         return workRecordMapper.toResponse(record);
     }
+
     @Transactional
     public WorkRecordResponse updateWorkRecord(Long employerId, Long storeId, Long workRecordId, UpdateWorkRecordRequest request) {
-        // 1. 가게 소유 확인
-        storeAccessService.getMyStore(storeId, employerId);
+        // 가게 소유 확인
+        Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 2. 기존 근무 기록 조회
         WorkRecord record = workRecordRepository.findById(workRecordId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 근무 기록이 존재하지 않습니다."));
+                .orElseThrow(() -> new WorkRecordNotFoundException("해당 근무 기록이 존재하지 않습니다."));
 
-        // 3. MapStruct로 request 덮어쓰기
+        // 이 가게 소속 직원의 기록인지 검증
+        storeAccessService.validateEmployeeInStore(store, record.getEmployee());
+
+        // MapStruct로 request 덮어쓰기
         workRecordMapper.updateFromRequest(request, record);
 
-        // 4. dirty checking으로 자동 저장
+        // 시간이 바뀌었으므로 집계 재계산
+        record.recalculateMinutes();
+
+        // dirty checking으로 자동 저장
         return workRecordMapper.toResponse(record);
     }
 

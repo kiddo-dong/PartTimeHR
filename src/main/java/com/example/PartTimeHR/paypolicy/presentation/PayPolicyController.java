@@ -1,6 +1,7 @@
 package com.example.PartTimeHR.paypolicy.presentation;
 
 import com.example.PartTimeHR.paypolicy.presentation.dto.CreatePayPolicyRequest;
+import com.example.PartTimeHR.paypolicy.presentation.dto.PayPolicyResponse;
 import com.example.PartTimeHR.paypolicy.presentation.dto.UpdatePayPolicyRequest;
 import com.example.PartTimeHR.paypolicy.application.PayPolicyService;
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
@@ -11,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/stores/{storeId}/paypolicies")
@@ -18,6 +21,17 @@ import org.springframework.web.bind.annotation.*;
 public class PayPolicyController {
 
     private final PayPolicyService payPolicyService;
+
+    // 조회 (매장의 직급/시급 목록)
+    @GetMapping
+    public ResponseEntity<List<PayPolicyResponse>> getPayPolicies(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId
+    ) {
+        return ResponseEntity.ok(
+                payPolicyService.getPayPolicies(storeId, userDetails.getId())
+        );
+    }
 
     // 생성
     @PostMapping

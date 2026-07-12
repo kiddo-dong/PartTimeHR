@@ -35,10 +35,7 @@ public class EmployeeService {
     @Transactional
     public EmployeeInfoResponse createEmployee(Long storeId, CreateEmployeeRequest request, Long employerId) {
 
-        // 매장 조회
-        storeAccessService.findStore(employerId);
-
-        // 사장 소유 확인
+        // 내 매장인지 확인 (매장 조회까지 함께 처리)
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
         // 해당 매장에 직원의 이메일이 중복인지 확인
@@ -73,21 +70,12 @@ public class EmployeeService {
                 .phone(request.getPhone())
                 .store(store)
                 .payPolicy(policy)
-                .email(request.getEmail())
-                .password(encodedPassword)
-                .name(request.getName())
-                .phone(request.getPhone())
-                .store(store)
-                .payPolicy(policy)
                 .role(Role.ROLE_EMPLOYEE)
                 .build();
 
         Employee saved = employeeRepository.save(employee);
 
-        EmployeeInfoResponse response = employeeMapper.toInfoResponse(saved);
-
-        // 응답
-        return response;
+        return employeeMapper.toInfoResponse(saved);
     }
 
     @Transactional

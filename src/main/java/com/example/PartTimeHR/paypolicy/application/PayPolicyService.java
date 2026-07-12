@@ -1,16 +1,19 @@
 package com.example.PartTimeHR.paypolicy.application;
 
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
-import com.example.PartTimeHR.paypolicy.presentation.dto.CreatePayPolicyRequest;
-import com.example.PartTimeHR.paypolicy.presentation.dto.UpdatePayPolicyRequest;
-import com.example.PartTimeHR.paypolicy.application.PayPolicyMapper;
+import com.example.PartTimeHR.paypolicy.domain.PayPolicyNotFoundException;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicyRepository;
-import com.example.PartTimeHR.store.domain.Store;
-import com.example.PartTimeHR.store.domain.StoreRepository;
+import com.example.PartTimeHR.paypolicy.presentation.dto.CreatePayPolicyRequest;
+import com.example.PartTimeHR.paypolicy.presentation.dto.PayPolicyResponse;
+import com.example.PartTimeHR.paypolicy.presentation.dto.UpdatePayPolicyRequest;
 import com.example.PartTimeHR.store.application.StoreAccessService;
+import com.example.PartTimeHR.store.domain.Store;
+import com.example.PartTimeHR.store.domain.StoreAccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,16 +23,20 @@ public class PayPolicyService {
     private final StoreAccessService storeAccessService;
     private final PayPolicyMapper payPolicyMapper;
 
+    // 매장의 직급/시급 정책 목록 조회
+    @Transactional(readOnly = true)
+    public List<PayPolicyResponse> getPayPolicies(Long storeId, Long employerId) {
+        storeAccessService.getMyStore(storeId, employerId);
+
+        return payPolicyMapper.toResponseList(payPolicyRepository.findByStoreId(storeId));
+    }
+
     @Transactional
     public void createPayPolicy(Long storeId, Long employerId, CreatePayPolicyRequest request) {
 
-        // 가게 조회
-        Store store = storeAccessService.findStore(storeId);
+        // 내 매장인지 확인 (매장 조회까지 함께 처리)
+        Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 사장 소유 확인
-        storeAccessService.getMyStore(storeId, employerId);
-
-        // 정책 생성
         PayPolicy policy = PayPolicy.builder()
                 .store(store)
                 .jobTitle(request.getJobTitle())
@@ -43,19 +50,19 @@ public class PayPolicyService {
 
     @Transactional
     public void updatePayPolicy(Long storeId, Long payPolicyId, Long employerId, UpdatePayPolicyRequest request) {
-        // 1. 가게 조회
-        Store store = storeAccessService.findStore(storeId);
 
-        // 2. 사장 소유 확인
-        storeAccessService.getMyStore(storeId, employerId);
+        Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 3. 기존 정책 조회 (ID 기준)
         PayPolicy policy = payPolicyRepository.findById(payPolicyId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 급여 정책이 존재하지 않습니다."));
+                .orElseThrow(PayPolicyNotFoundException::new);
 
-        // 4. MapStruct로 request 덮어쓰기
+        // 다른 매장의 정책을 수정하지 못하도록 소속 검증
+        if (!policy.getStore().getId().equals(store.getId())) {
+            throw new StoreAccessDeniedException();
+        }
+
         payPolicyMapper.updatePayPolicyFromRequest(request, policy);
 
-        // 5. JPA 트랜잭션 내에서 dirty checking으로 자동 저장
+        // dirty checking으로 자동 저장
     }
 }

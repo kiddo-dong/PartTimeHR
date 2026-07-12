@@ -59,9 +59,7 @@ public class StoreServiceImpl implements StoreService {
                 .build();
         payPolicyRepository.save(defaultPolicy);
 
-        Store saved = storeRepository.save(store);
-
-        return storeMapper.toInfoResponse(saved);
+        return storeMapper.toInfoResponse(store);
     }
 
     // ===== 수정 =====
@@ -98,13 +96,9 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public StoreInfoResponse getStore(Long storeId, Long employerId) {
 
-        // 가게 존재 여부 확인
-        Store store = storeAccessService.findStore(storeId);
+        // 내 가게인지 검증 (존재 확인까지 함께 처리)
+        Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 내 가게인지 검증
-        storeAccessService.getMyStore(storeId, employerId);
-
-        //
         return storeMapper.toInfoResponse(store);
     }
 }

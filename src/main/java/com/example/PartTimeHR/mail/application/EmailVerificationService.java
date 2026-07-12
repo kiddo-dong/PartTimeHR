@@ -3,6 +3,8 @@ package com.example.PartTimeHR.mail.application;
 import com.example.PartTimeHR.mail.domain.EmailVerification;
 import com.example.PartTimeHR.mail.domain.EmailVerificationRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
+import com.example.PartTimeHR.employer.domain.EmployerNotFoundException;
+import com.example.PartTimeHR.employer.domain.EmployerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmailVerificationService {
 
     private final EmailVerificationRepository emailVerificationRepository;
+    private final EmployerRepository employerRepository;
     private final MailService mailService;
 
     public void verifyEmail(String token) {
@@ -26,12 +29,21 @@ public class EmailVerificationService {
         ev.getEmployer().verifyEmail();
     }
 
-    public void resendVerificationEmail(Employer employer) {
+    public void resendVerificationEmail(String email) {
+        Employer employer = employerRepository.findByEmail(email)
+                .orElseThrow(EmployerNotFoundException::new);
+
         // 기존 토큰 조회
         EmailVerification ev = emailVerificationRepository.findByEmployerId(employer.getId())
                 .orElse(null);
 
-        if (ev == null || ev.isExpired()) {
+        if (ev != null && ev.isExpired()) {
+            // 만료된 토큰을 지우지 않으면 직원당 여러 행이 쌓여 findByEmployerId가 깨진다
+            emailVerificationRepository.delete(ev);
+            ev = null;
+        }
+
+        if (ev == null) {
             ev = EmailVerification.create(employer);
             emailVerificationRepository.save(ev);
         }
