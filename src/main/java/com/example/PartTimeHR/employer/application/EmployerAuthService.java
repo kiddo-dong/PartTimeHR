@@ -4,6 +4,7 @@ import com.example.PartTimeHR.mail.domain.EmailVerification;
 import com.example.PartTimeHR.mail.domain.PasswordResetToken;
 import com.example.PartTimeHR.mail.domain.EmailVerificationRepository;
 import com.example.PartTimeHR.mail.application.MailService;
+import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.employer.presentation.dto.EmployerSignupRequest;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmployerAuthService {
 
     private final EmployerRepository employerRepository;
+    private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationRepository emailVerificationRepository;
     private final MailService mailService;
@@ -35,7 +37,9 @@ public class EmployerAuthService {
     @Transactional
     public void signup(EmployerSignupRequest request) {
 
-        if (employerRepository.existsByEmail(request.getEmail())) {
+        // 직원 계정과도 이메일이 겹치면 안 됨 (로그인이 이메일 하나로 이뤄짐)
+        if (employerRepository.existsByEmail(request.getEmail())
+                || employeeRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 

@@ -8,6 +8,7 @@ import com.example.PartTimeHR.employee.domain.PasswordMismatchException;
 import com.example.PartTimeHR.employee.application.EmployeeMapper;
 import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
+import com.example.PartTimeHR.paypolicy.domain.PayPolicyNotFoundException;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicyRepository;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.domain.StoreAccessDeniedException;
@@ -38,8 +39,8 @@ public class EmployeeService {
         // 내 매장인지 확인 (매장 조회까지 함께 처리)
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 해당 매장에 직원의 이메일이 중복인지 확인
-        employeeAccessService.checkEmployeeEmailDuplicates(store.getId(), request.getEmail());
+        // 이메일 중복 확인 (직원 전체 + 사장 계정, 로그인이 이메일 하나로 이뤄지므로 전역 검사)
+        employeeAccessService.checkEmailDuplicates(request.getEmail());
 
         // 비밀번호 확인
         if (!request.getPassword().equals(request.getPasswordConfirm())) {
@@ -52,14 +53,10 @@ public class EmployeeService {
         // PayPolicy 결정
         PayPolicy policy;
         if (request.getPayPolicyId() != null) {
-            policy = payPolicyRepository.findById(request.getPayPolicyId())
-                    .orElseThrow(() -> new RuntimeException("해당 급여 정책이 없습니다."));
-            if (!policy.getStore().getId().equals(store.getId())) {
-                throw new StoreAccessDeniedException();
-            }
+            policy = getStorePolicy(request.getPayPolicyId(), store);
         } else {
             policy = payPolicyRepository.findByStoreIdAndIsDefaultTrue(store.getId())
-                    .orElseThrow(() -> new RuntimeException("기본 급여 정책이 없습니다."));
+                    .orElseThrow(PayPolicyNotFoundException::new);
         }
 
         // Employee 생성
@@ -85,11 +82,11 @@ public class EmployeeService {
             Long employeeId,
             UpdateEmployeeRequest request
     ) {
-        // 직원 조회 (영속 상태)
-        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
-
         // 매장 소유 검증
-        storeAccessService.getMyStore(storeId, employerId);
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // 직원 조회 + 해당 매장 소속 검증 (영속 상태)
+        Employee employee = employeeAccessService.getEmployee(employeeId, store);
 
         /* ===== 비밀번호 변경 로직 ===== */
         if (request.getPassword() != null || request.getPasswordConfirm() != null) {
@@ -119,14 +116,25 @@ public class EmployeeService {
 
         /* ===== 페이 정책 변경 ===== */
         if (request.getPayPolicyId() != null) {
-            PayPolicy policy = payPolicyRepository.findById(request.getPayPolicyId())
-                    .orElseThrow(() -> new IllegalArgumentException("페이 정책을 찾을 수 없습니다."));
-
-            employee.changePayPolicy(policy);
+            employee.changePayPolicy(
+                    getStorePolicy(request.getPayPolicyId(), store)
+            );
         }
 
         // save() 필요 없음 (Dirty Checking)
         return employeeMapper.toInfoResponse(employee);
+    }
+
+    // 정책 조회 + 해당 매장 소속 검증
+    private PayPolicy getStorePolicy(Long payPolicyId, Store store) {
+        PayPolicy policy = payPolicyRepository.findById(payPolicyId)
+                .orElseThrow(PayPolicyNotFoundException::new);
+
+        if (!policy.getStore().getId().equals(store.getId())) {
+            throw new StoreAccessDeniedException();
+        }
+
+        return policy;
     }
 
 

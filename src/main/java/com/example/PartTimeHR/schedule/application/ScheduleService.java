@@ -42,9 +42,9 @@ public class ScheduleService {
         // 매장 접근 권한 검증
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 직원 접근 권한 검증
+        // 직원 조회 + 해당 매장 소속 검증
         Employee employee = employeeAccessService
-                .getEmployeeOrThrow(request.getEmployeeId());
+                .getEmployee(request.getEmployeeId(), store);
 
         // 시간 검증
         scheduleAccessService.validateWorkTime(
@@ -83,12 +83,8 @@ public class ScheduleService {
         // 매장 권한
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 직원 소속 검증
-        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
-
-        if (!employee.getStore().getId().equals(store.getId())) {
-            throw new IllegalArgumentException("해당 직원은 이 매장 소속이 아닙니다.");
-        }
+        // 직원 조회 + 해당 매장 소속 검증
+        employeeAccessService.getEmployee(employeeId, store);
 
         // 스케줄 조회
         Schedule schedule = scheduleAccessService.getScheduleOrThrow(scheduleId);
@@ -205,16 +201,17 @@ public class ScheduleService {
 
     // ===== 직원별 조회(단일/기간/주간/월간) =====
     // 직원별 단일 날짜 조회
+    @Transactional(readOnly = true)
     public List<ScheduleResponse> findEmployeeSchedulesByDate(
             Long employerId, Long storeId, Long employeeId, LocalDate date
     ) {
-        // 1. 매장 접근 권한 체크
+        // 매장 접근 권한 체크
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 2. Employee 로딩
-        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+        // 직원 조회 + 해당 매장 소속 검증
+        Employee employee = employeeAccessService.getEmployee(employeeId, store);
 
-        // 4. 단일 날짜 스케줄 조회
+        // 단일 날짜 스케줄 조회
         return scheduleRepository
                 .findByEmployeeAndStoreAndWorkDate(employee, store, date)
                 .stream()
@@ -224,17 +221,15 @@ public class ScheduleService {
     }
 
     // 직원별 기간 조회
+    @Transactional(readOnly = true)
     public List<ScheduleResponse> findEmployeeSchedulesByPeriod(
             Long employerId, Long employeeId, Long storeId, LocalDate startDate, LocalDate endDate
     ) {
         // 소속 매장 접근 권한 체크
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // Repository에서 Employee 객체 가져오기
-        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
-
-        employeeAccessService.getEmployee(employee.getId(), store);
-
+        // 직원 조회 + 해당 매장 소속 검증
+        Employee employee = employeeAccessService.getEmployee(employeeId, store);
 
         return scheduleRepository.findByEmployeeAndWorkDateBetween(employee, startDate, endDate)
                 .stream()
@@ -314,11 +309,8 @@ public class ScheduleService {
         // 매장 접근 권한 검증
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
-        // 직원 조회 + 매장 소속 검증
-        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
-        if (!employee.getStore().getId().equals(store.getId())) {
-            throw new IllegalArgumentException("해당 직원은 이 매장 소속이 아닙니다.");
-        }
+        // 직원 조회 + 해당 매장 소속 검증
+        employeeAccessService.getEmployee(employeeId, store);
 
         // 스케줄 조회
         Schedule schedule = scheduleAccessService.getScheduleOrThrow(scheduleId);
