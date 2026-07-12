@@ -32,6 +32,9 @@ public interface WorkRecordRepository extends JpaRepository<WorkRecord, Long> {
     // 직원의 전체 근무 기록 조회
     List<WorkRecord> findAllByEmployee(Employee employee);
 
+    // 직원 삭제 시 함께 정리
+    void deleteAllByEmployee(Employee employee);
+
     // 집계 시 employee를 함께 읽으므로 fetch join으로 N+1 방지
     @Query("""
             select wr

@@ -60,4 +60,15 @@ public class PayPolicyController {
         payPolicyService.updatePayPolicy(storeId, payPolicyId, userDetails.getId(), request);
         return ResponseEntity.ok().build();
     }
+
+    // 삭제 (기본 정책·사용 중인 정책은 409)
+    @DeleteMapping("/{payPolicyId}")
+    public ResponseEntity<Void> deletePayPolicy(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId,
+            @PathVariable Long payPolicyId
+    ) {
+        payPolicyService.deletePayPolicy(storeId, payPolicyId, userDetails.getId());
+        return ResponseEntity.noContent().build();
+    }
 }

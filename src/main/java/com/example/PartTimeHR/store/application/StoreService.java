@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.store.application;
 
+import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.EmployerNotFoundException;
 import com.example.PartTimeHR.employer.domain.EmployerRepository;
@@ -22,6 +23,7 @@ public class StoreService {
 
     private final StoreRepository storeRepository;
     private final EmployerRepository employerRepository;
+    private final EmployeeRepository employeeRepository;
     private final StoreMapper storeMapper;
     private final StoreAccessService storeAccessService;
     private final PayPolicyRepository payPolicyRepository;
@@ -91,5 +93,21 @@ public class StoreService {
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
         return storeMapper.toInfoResponse(store);
+    }
+
+    // ===== 삭제 =====
+    @Transactional
+    public void deleteStore(Long employerId, Long storeId) {
+
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // 직원(과 그에 딸린 스케줄/근무기록)이 남아 있으면 삭제 불가
+        if (employeeRepository.existsByStoreId(store.getId())) {
+            throw new IllegalStateException("소속 직원이 있는 매장은 삭제할 수 없습니다. 직원을 먼저 삭제해주세요.");
+        }
+
+        // 시급 정책 정리 후 매장 삭제
+        payPolicyRepository.deleteAllByStoreId(store.getId());
+        storeRepository.delete(store);
     }
 }

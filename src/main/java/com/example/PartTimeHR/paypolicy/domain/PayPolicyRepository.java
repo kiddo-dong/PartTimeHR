@@ -12,4 +12,7 @@ public interface PayPolicyRepository extends JpaRepository<PayPolicy, Long> {
 
     Optional<PayPolicy> findByStoreIdAndIsDefaultTrue(Long storeId);
 
+    // 매장 삭제 시 함께 정리
+    void deleteAllByStoreId(Long storeId);
+
 }

@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.paypolicy.application;
 
+import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicyNotFoundException;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicyRepository;
@@ -20,6 +21,7 @@ import java.util.List;
 public class PayPolicyService {
 
     private final PayPolicyRepository payPolicyRepository;
+    private final EmployeeRepository employeeRepository;
     private final StoreAccessService storeAccessService;
     private final PayPolicyMapper payPolicyMapper;
 
@@ -64,5 +66,30 @@ public class PayPolicyService {
         payPolicyMapper.updatePayPolicyFromRequest(request, policy);
 
         // dirty checking으로 자동 저장
+    }
+
+    @Transactional
+    public void deletePayPolicy(Long storeId, Long payPolicyId, Long employerId) {
+
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        PayPolicy policy = payPolicyRepository.findById(payPolicyId)
+                .orElseThrow(PayPolicyNotFoundException::new);
+
+        if (!policy.getStore().getId().equals(store.getId())) {
+            throw new StoreAccessDeniedException();
+        }
+
+        // 기본 정책은 직원 등록의 fallback이므로 삭제 불가
+        if (policy.isDefault()) {
+            throw new IllegalStateException("기본 정책은 삭제할 수 없습니다.");
+        }
+
+        // 사용 중인 직원이 있으면 삭제 불가 (직원의 정책을 먼저 변경해야 함)
+        if (employeeRepository.existsByPayPolicyId(policy.getId())) {
+            throw new IllegalStateException("해당 정책을 사용 중인 직원이 있어 삭제할 수 없습니다.");
+        }
+
+        payPolicyRepository.delete(policy);
     }
 }

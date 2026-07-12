@@ -73,4 +73,17 @@ public class EmployeeController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    // ===== 삭제 API =====
+    // 직원 삭제 (스케줄/근무 기록도 함께 삭제됨)
+    @DeleteMapping("/{employeeId}")
+    public ResponseEntity<Void> deleteEmployee(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long storeId,
+            @PathVariable Long employeeId
+    ){
+        employeeService.deleteEmployee(userDetails.getId(), storeId, employeeId);
+
+        return ResponseEntity.noContent().build();
+    }
 }

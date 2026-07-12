@@ -49,4 +49,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findByEmployeeAndStoreAndWorkDate(Employee employee, Store store, LocalDate workDate);
 
+    // 직원 삭제 시 함께 정리
+    void deleteAllByEmployee(Employee employee);
+
 }

@@ -21,4 +21,10 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     // 이메일 중복 확인 (email은 전역 unique)
     boolean existsByEmail(String email);
+
+    // 시급 정책 삭제 전 사용 중인 직원 존재 확인
+    boolean existsByPayPolicyId(Long payPolicyId);
+
+    // 매장 삭제 전 소속 직원 존재 확인
+    boolean existsByStoreId(Long storeId);
 }

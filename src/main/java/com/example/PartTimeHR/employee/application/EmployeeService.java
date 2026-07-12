@@ -10,6 +10,8 @@ import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicyNotFoundException;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicyRepository;
+import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
+import com.example.PartTimeHR.workrecord.domain.WorkRecordRepository;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.store.domain.StoreAccessDeniedException;
 import com.example.PartTimeHR.employer.domain.Role;
@@ -27,6 +29,8 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final PayPolicyRepository payPolicyRepository;
+    private final ScheduleRepository scheduleRepository;
+    private final WorkRecordRepository workRecordRepository;
     private final EmployeeMapper employeeMapper;
     private final PasswordEncoder passwordEncoder;
     private final StoreAccessService storeAccessService;
@@ -123,6 +127,24 @@ public class EmployeeService {
 
         // save() 필요 없음 (Dirty Checking)
         return employeeMapper.toInfoResponse(employee);
+    }
+
+    // 직원 삭제
+    // 주의(MVP): 스케줄·근무 기록도 함께 삭제되어 급여 이력이 사라진다.
+    // 이력 보존이 필요해지면 soft delete로 전환할 것.
+    @Transactional
+    public void deleteEmployee(Long employerId, Long storeId, Long employeeId) {
+
+        // 매장 소유 검증
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        // 직원 조회 + 해당 매장 소속 검증
+        Employee employee = employeeAccessService.getEmployee(employeeId, store);
+
+        // FK 참조 데이터 정리 후 삭제
+        scheduleRepository.deleteAllByEmployee(employee);
+        workRecordRepository.deleteAllByEmployee(employee);
+        employeeRepository.delete(employee);
     }
 
     // 정책 조회 + 해당 매장 소속 검증

@@ -72,4 +72,14 @@ public class StoreController {
         StoreInfoResponse response = storeService.getStore(storeId, userDetails.getId());
         return ResponseEntity.ok(response);
     }
+
+    // ===== 삭제 (소속 직원이 있으면 409) =====
+    @DeleteMapping("/{storeId}")
+    public ResponseEntity<Void> deleteStore(
+            @PathVariable Long storeId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        storeService.deleteStore(userDetails.getId(), storeId);
+        return ResponseEntity.noContent().build();
+    }
 }
