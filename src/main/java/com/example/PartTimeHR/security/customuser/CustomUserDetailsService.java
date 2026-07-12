@@ -1,8 +1,8 @@
 package com.example.PartTimeHR.security.customuser;
 
-import com.example.PartTimeHR.mail.exception.EmailNotVerifiedException;
-import com.example.PartTimeHR.employee.repository.EmployeeRepository;
-import com.example.PartTimeHR.employer.repository.EmployerRepository;
+import com.example.PartTimeHR.mail.domain.EmailNotVerifiedException;
+import com.example.PartTimeHR.employee.domain.EmployeeRepository;
+import com.example.PartTimeHR.employer.domain.EmployerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

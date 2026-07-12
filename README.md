@@ -37,69 +37,43 @@
 
 ## 3. 프로젝트 구조
 
+도메인별로 패키지를 나누고, 각 도메인 안을 **presentation / application / domain** 3계층으로 구성한다.
+
+| 계층 | 담는 것 | 의존 방향 |
+|------|---------|-----------|
+| `presentation` | Controller, Request/Response DTO | → application |
+| `application` | Service, Mapper (유스케이스, 트랜잭션 경계) | → domain |
+| `domain` | Entity, Repository, 도메인 예외 | 의존 없음 |
+
 ```
 PartTimeHR/
-├── global/             # 공통 기능
-│   ├── config/         # SecurityConfig
-│   ├── dto/         
-│   └── exception/      # 예외
-├── security/           # 보안 설정
+├── auth/               # 통합 로그인 (Employer/Employee 공용)
+│   ├── presentation/   # AuthController + dto
+│   ├── application/    # AuthService
+│   └── domain/         # AuthPrincipal, InvalidCredentialsException
+├── employer/           # 사장님
+│   ├── presentation/   # EmployerController, EmployerAuthController + dto
+│   ├── application/    # EmployerService, EmployerAuthService, EmployerMapper
+│   └── domain/         # Employer, Role, EmployerRepository, 예외
+├── store/              # 매장(가게)
+├── employee/           # 직원
+├── paypolicy/          # 직급/시급 정책
+├── schedule/           # 근무 스케줄 (예정)
+├── workrecord/         # 근태 기록 (실제 출퇴근)
+├── attendance/         # 스케줄 ↔ 근태 대조 통계
+├── mail/               # SMTP 이메일 인증 / 비밀번호 재설정 토큰
+│   (위 도메인 모두 presentation / application / domain 3계층 동일)
+│
+├── security/           # 보안 (도메인 아님)
 │   ├── customuser/     # CustomUserDetails
-│   ├── handler/        # FormLogin Handler
-│   └── jwt/            # JWT 인증관련
-├── mail/               # SMTP(이메일) 인증 관련
-│   ├── domain/
-│   ├── controller/
-│   ├── service/
-│   ├── repository/
-│   └── exception/
-├── employer/           # 사장님 관련
-│   ├── domain/
-│   ├── controller/
-│   ├── service/
-│   ├── repository/
-│   ├── dto/
-│   ├── exception/
-│   └── mapper/
-├── store/           # 매장(가게) 관련
-│   ├── domain/
-│   ├── controller/
-│   ├── service/
-│   ├── repository/
-│   ├── dto/
-│   ├── exception/
-│   └── mapper/
-├── employee/           # 직원 관련
-│   ├── domain/
-│   ├── controller/
-│   ├── service/
-│   ├── repository/
-│   ├── exception/
-│   ├── dto/
-│   └── mapper/
-├── paypolicy/          # 사장님 정책 관련
-│   ├── domain/
-│   ├── controller/
-│   ├── service/
-│   ├── repository/
-│   └── dto/
-├── schedule/           # 스케줄 관련
-│   ├── domain/
-│   ├── controller/
-│   ├── service/
-│   ├── repository/
-│   ├── exception/
-│   ├── dto/
-│   ├── util/
-│   └── mapper/
-├── workrecord/         # 근태 기록 관련
-│   ├── domain/
-│   ├── controller/
-│   ├── service/
-│   ├── repository/
-│   ├── exception/
-│   ├── dto/
-│   └── mapper/
+│   ├── handler/        # Login Handler
+│   └── jwt/            # JwtProvider, JwtAuthenticationFilter
+├── global/             # 공통
+│   ├── config/         # SecurityConfig
+│   ├── dto/            # ErrorResponse
+│   └── exception/      # GlobalExceptionHandler
+└── common/
+    └── presentation/   # RootController (헬스체크)
 ```
 
 ---
