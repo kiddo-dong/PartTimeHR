@@ -1,8 +1,6 @@
 package com.example.PartTimeHR.security.jwt;
 
-import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.domain.EmployeeRepository;
-import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.employer.domain.EmployerRepository;
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
@@ -44,27 +42,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // ✅ 토큰이 있는 경우에만 인증 처리
         if (token != null && jwtProvider.validateToken(token)) {
+            authenticate(token);
+        }
 
+        // 인증에 실패하면 SecurityContext를 비운 채 통과
+        // → 보호된 URL은 authenticationEntryPoint가 401 JSON으로 응답
+        filterChain.doFilter(request, response);
+    }
+
+    /**
+     * 필터는 컨트롤러 밖이라 @RestControllerAdvice가 예외를 못 잡는다.
+     * 따라서 여기서는 예외를 던지지 않고, 실패 시 인증을 세팅하지 않는 것으로 처리한다.
+     * (토큰은 유효한데 계정이 삭제된 경우, role 클레임이 손상된 경우 등)
+     */
+    private void authenticate(String token) {
+        try {
             Claims claims = jwtProvider.getClaims(token);
 
             String email = claims.getSubject();
-            String roleStr = claims.get("role", String.class);
-            Role role = Role.valueOf(roleStr);
+            Role role = Role.valueOf(claims.get("role", String.class));
 
-            CustomUserDetails userDetails;
+            CustomUserDetails userDetails = switch (role) {
+                case ROLE_EMPLOYER -> employerRepository.findByEmail(email)
+                        .map(CustomUserDetails::new)
+                        .orElse(null);
+                case ROLE_EMPLOYEE -> employeeRepository.findByEmail(email)
+                        .map(CustomUserDetails::new)
+                        .orElse(null);
+                default -> null;
+            };
 
-            switch (role) {
-                case ROLE_EMPLOYER -> {
-                    Employer employer = employerRepository.findByEmail(email)
-                            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-                    userDetails = new CustomUserDetails(employer);
-                }
-                case ROLE_EMPLOYEE -> {
-                    Employee employee = employeeRepository.findByEmail(email)
-                            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-                    userDetails = new CustomUserDetails(employee);
-                }
-                default -> throw new RuntimeException("알 수 없는 사용자 역할");
+            if (userDetails == null) {
+                return;
             }
 
             Authentication authentication =
@@ -75,10 +84,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (Exception e) {
+            SecurityContextHolder.clearContext();
         }
-
-        // 토큰 없거나 유효하지 않으면 그냥 통과
-        filterChain.doFilter(request, response);
     }
 
     private String resolveToken(HttpServletRequest request) {
