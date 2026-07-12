@@ -135,6 +135,48 @@ class WorkRecordTest {
     }
 
     @Test
+    void 미퇴근_근무는_자동_마감된다() {
+        WorkRecord record = WorkRecord.builder()
+                .workDate(LocalDate.of(2026, 7, 12))
+                .clockInTime(LocalDateTime.of(2026, 7, 12, 18, 0))
+                .appliedHourlyWage(10320)
+                .appliedJobTitle("알바생")
+                .status(WorkStatus.IN_PROGRESS)
+                .totalBreakMinutes(0)
+                .totalWorkedMinutes(0)
+                .netWorkedMinutes(0)
+                .build();
+
+        record.autoClose();
+
+        assertThat(record.getStatus()).isEqualTo(WorkStatus.COMPLETED);
+        assertThat(record.getClockOutTime()).isEqualTo(LocalDateTime.of(2026, 7, 12, 23, 59));
+        assertThat(record.getTotalWorkedMinutes()).isEqualTo(359); // 18:00 ~ 23:59
+        assertThat(record.getMemo()).contains("미퇴근 자동 마감");
+    }
+
+    @Test
+    void 휴게_중에_방치된_근무는_휴게를_마감_시각까지로_보고_자동_마감된다() {
+        WorkRecord record = WorkRecord.builder()
+                .workDate(LocalDate.of(2026, 7, 12))
+                .clockInTime(LocalDateTime.of(2026, 7, 12, 18, 0))
+                .breakStartTime(LocalDateTime.of(2026, 7, 12, 20, 0))
+                .appliedHourlyWage(10320)
+                .appliedJobTitle("알바생")
+                .status(WorkStatus.ON_BREAK)
+                .totalBreakMinutes(0)
+                .totalWorkedMinutes(0)
+                .netWorkedMinutes(0)
+                .build();
+
+        record.autoClose();
+
+        assertThat(record.getStatus()).isEqualTo(WorkStatus.COMPLETED);
+        assertThat(record.getBreakMinutes()).isEqualTo(239);      // 20:00 ~ 23:59
+        assertThat(record.getNetWorkedMinutes()).isEqualTo(120);  // 18:00 ~ 20:00
+    }
+
+    @Test
     void 퇴근_전에는_총_근무_시간이_확정되지_않는다() {
         WorkRecord record = inProgressRecord();
 

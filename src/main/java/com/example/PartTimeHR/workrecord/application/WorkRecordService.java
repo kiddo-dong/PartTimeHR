@@ -120,9 +120,17 @@ public class WorkRecordService {
 
     // 출근 처리 공통 로직
     private WorkRecordResponse doClockIn(Employee employee) {
-        if (workRecordRepository.existsByEmployeeAndClockOutTimeIsNull(employee)) {
-            throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
-        }
+        workRecordRepository
+                .findFirstByEmployeeAndClockOutTimeIsNullOrderByClockInTimeDesc(employee)
+                .ifPresent(openRecord -> {
+                    // 오늘 진행 중인 근무는 중복 출근으로 차단
+                    if (openRecord.getWorkDate().isEqual(LocalDate.now())) {
+                        throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
+                    }
+                    // 이전 날짜의 미퇴근 근무는 자동 마감하고 새 출근을 허용
+                    // (dirty checking으로 저장)
+                    openRecord.autoClose();
+                });
 
         WorkRecord record = WorkRecord.builder()
                 .employee(employee)

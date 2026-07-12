@@ -152,6 +152,40 @@ public class WorkRecord {
         recalculateMinutes();
     }
 
+    private static final String AUTO_CLOSE_MEMO = "[미퇴근 자동 마감]";
+
+    /**
+     * 미퇴근 자동 마감 - 직원이 퇴근을 찍지 않은 채 다음 출근을 시도할 때 호출.
+     * 근무일 자정 직전(23:59)을 퇴근 시각으로 확정하고 메모에 표시해
+     * 사장이 나중에 수동 수정으로 바로잡을 수 있게 한다.
+     */
+    public void autoClose() {
+        LocalDateTime closeTime = workDate.atTime(23, 59);
+
+        // 출근이 23:59 이후인 극단 케이스 - 0분 근무로 마감
+        if (!clockInTime.isBefore(closeTime)) {
+            closeTime = clockInTime;
+        }
+
+        // 휴게를 끝내지 않은 채 방치된 경우: 휴게 시작~마감까지를 휴게로 본다
+        if (status == WorkStatus.ON_BREAK) {
+            if (breakStartTime.isBefore(closeTime)) {
+                this.totalBreakMinutes += (int) Duration.between(breakStartTime, closeTime).toMinutes();
+                this.breakEndTime = closeTime;
+            } else {
+                this.breakEndTime = breakStartTime;
+            }
+        }
+
+        this.clockOutTime = closeTime;
+        this.status = WorkStatus.COMPLETED;
+        this.memo = (memo == null || memo.isBlank())
+                ? AUTO_CLOSE_MEMO
+                : memo + " " + AUTO_CLOSE_MEMO;
+
+        recalculateMinutes();
+    }
+
     /**
      * 시간 필드 간의 순서 검증. 수동 생성/수정 시 호출.
      * (검증 없이는 퇴근 < 출근 같은 입력으로 음수 근무 시간이 저장될 수 있다)
