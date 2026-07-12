@@ -8,6 +8,7 @@ import com.example.PartTimeHR.employee.domain.PasswordMismatchException;
 import com.example.PartTimeHR.employer.domain.EmployerNotFoundException;
 import com.example.PartTimeHR.global.dto.ErrorResponse;
 import com.example.PartTimeHR.mail.domain.EmailNotVerifiedException;
+import com.example.PartTimeHR.mail.domain.MailCooldownException;
 import com.example.PartTimeHR.schedule.domain.DuplicateScheduleException;
 import com.example.PartTimeHR.schedule.domain.InvalidScheduleException;
 import com.example.PartTimeHR.schedule.domain.ScheduleAccessDeniedException;
@@ -82,6 +83,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         return buildError(HttpStatus.CONFLICT, "INVALID_STATE", ex.getMessage());
+    }
+
+    /* ===== 429 TOO_MANY_REQUESTS ===== */
+    @ExceptionHandler(MailCooldownException.class)
+    public ResponseEntity<ErrorResponse> handleMailCooldown(MailCooldownException ex) {
+        return buildError(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_REQUESTS", ex.getMessage());
     }
 
     /* ===== 400 BAD_REQUEST ===== */

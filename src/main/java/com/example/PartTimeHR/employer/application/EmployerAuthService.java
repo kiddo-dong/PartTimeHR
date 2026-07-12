@@ -1,8 +1,10 @@
 package com.example.PartTimeHR.employer.application;
 
+import com.example.PartTimeHR.global.config.AppProperties;
 import com.example.PartTimeHR.mail.domain.EmailVerification;
 import com.example.PartTimeHR.mail.domain.PasswordResetToken;
 import com.example.PartTimeHR.mail.domain.EmailVerificationRepository;
+import com.example.PartTimeHR.mail.application.MailCooldownGuard;
 import com.example.PartTimeHR.mail.application.MailService;
 import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
@@ -31,6 +33,8 @@ public class EmployerAuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PayPolicyRepository payPolicyRepository;
     private final StoreRepository storeRepository;
+    private final AppProperties appProperties;
+    private final MailCooldownGuard mailCooldownGuard;
 
     // signup logic
     // 회원가입
@@ -94,6 +98,8 @@ public class EmployerAuthService {
     // 비밀번호 찾기 요청
     @Transactional
     public void requestPasswordReset(String email) {
+        mailCooldownGuard.checkAndMark(email);
+
         Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일"));
 
@@ -145,7 +151,7 @@ public class EmployerAuthService {
 
     // 계정 생성용 이메일 인증 템플릿
     private String createVerificationEmailHtml(String name, String token) {
-        String verifyLink = "http://localhost:8080/api/email/verify?token=" + token;
+        String verifyLink = appProperties.getBaseUrl() + "/api/email/verify?token=" + token;
 
         return "<!DOCTYPE html>"
                 + "<html lang='ko'>"
@@ -189,7 +195,7 @@ public class EmployerAuthService {
 
     // 비밀번호 리셋을 위한 이메일 인증 템플릿
     private String createPasswordResetEmailHtml(String name, String token) {
-        String resetLink = "http://localhost:8080/api/employers/password/reset?token=" + token;
+        String resetLink = appProperties.getBaseUrl() + "/api/employers/password/reset?token=" + token;
 
         return "<!DOCTYPE html>"
                 + "<html lang='ko'>"

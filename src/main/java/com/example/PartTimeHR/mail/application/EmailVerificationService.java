@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.mail.application;
 
+import com.example.PartTimeHR.global.config.AppProperties;
 import com.example.PartTimeHR.mail.domain.EmailVerification;
 import com.example.PartTimeHR.mail.domain.EmailVerificationRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
@@ -17,6 +18,8 @@ public class EmailVerificationService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final EmployerRepository employerRepository;
     private final MailService mailService;
+    private final AppProperties appProperties;
+    private final MailCooldownGuard mailCooldownGuard;
 
     public void verifyEmail(String token) {
         EmailVerification ev = emailVerificationRepository.findByTokenWithEmployer(token)
@@ -30,6 +33,8 @@ public class EmailVerificationService {
     }
 
     public void resendVerificationEmail(String email) {
+        mailCooldownGuard.checkAndMark(email);
+
         Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(EmployerNotFoundException::new);
 
@@ -49,6 +54,8 @@ public class EmailVerificationService {
         }
 
         // HTML 이메일 생성
+        String verifyLink = appProperties.getBaseUrl() + "/api/email/verify?token=" + ev.getToken();
+
         String html = "<!DOCTYPE html>"
                 + "<html lang='ko'>"
                 + "<head>"
@@ -64,9 +71,9 @@ public class EmailVerificationService {
                 + "  <div class='container'>"
                 + "    <h2>안녕하세요, " + employer.getName() + "님!</h2>"
                 + "    <p>회원가입을 완료하려면 아래 버튼을 클릭해주세요.</p>"
-                + "    <a class='btn' href='http://localhost:8080/api/email/verify?token=" + ev.getToken() + "'>이메일 인증하기</a>"
+                + "    <a class='btn' href='" + verifyLink + "'>이메일 인증하기</a>"
                 + "    <p>버튼이 작동하지 않으면 아래 링크를 브라우저에 붙여넣으세요:<br>"
-                + "http://localhost:8080/api/email/verify?token=" + ev.getToken() + "</p>"
+                + verifyLink + "</p>"
                 + "  </div>"
                 + "</body>"
                 + "</html>";
