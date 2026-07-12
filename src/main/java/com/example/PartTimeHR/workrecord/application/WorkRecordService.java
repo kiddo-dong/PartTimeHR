@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +31,7 @@ public class WorkRecordService {
     private final WorkRecordMapper workRecordMapper;
 
     /* ======================
-       자동 생성 (출근 / 휴게 / 퇴근)
+       원클릭 (출근 / 휴게 / 퇴근) - 사장 컨텍스트
        ====================== */
 
     // 출근
@@ -39,8 +40,86 @@ public class WorkRecordService {
             Long storeId,
             Long employeeId
     ) {
-        Employee employee = validateAccess(employerId, storeId, employeeId);
+        return doClockIn(validateAccess(employerId, storeId, employeeId));
+    }
 
+    // 휴게 시작
+    public WorkRecordResponse startBreak(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
+        WorkRecord record = getActiveRecordOf(validateAccess(employerId, storeId, employeeId));
+        record.startBreak();
+        return workRecordMapper.toResponse(record);
+    }
+
+    // 휴게 종료
+    public WorkRecordResponse endBreak(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
+        WorkRecord record = getActiveRecordOf(validateAccess(employerId, storeId, employeeId));
+        record.endBreak();
+        return workRecordMapper.toResponse(record);
+    }
+
+    // 퇴근
+    public WorkRecordResponse clockOut(
+            Long employerId,
+            Long storeId,
+            Long employeeId
+    ) {
+        WorkRecord record = getActiveRecordOf(validateAccess(employerId, storeId, employeeId));
+        record.clockOut(LocalDateTime.now());
+        return workRecordMapper.toResponse(record);
+    }
+
+    /* ======================
+       원클릭 (출근 / 휴게 / 퇴근) - 직원 본인
+       ====================== */
+
+    // 출근 (본인)
+    public WorkRecordResponse clockInSelf(Long employeeId) {
+        return doClockIn(employeeAccessService.getEmployeeOrThrow(employeeId));
+    }
+
+    // 휴게 시작 (본인)
+    public WorkRecordResponse startBreakSelf(Long employeeId) {
+        WorkRecord record = getActiveRecordOf(employeeAccessService.getEmployeeOrThrow(employeeId));
+        record.startBreak();
+        return workRecordMapper.toResponse(record);
+    }
+
+    // 휴게 종료 (본인)
+    public WorkRecordResponse endBreakSelf(Long employeeId) {
+        WorkRecord record = getActiveRecordOf(employeeAccessService.getEmployeeOrThrow(employeeId));
+        record.endBreak();
+        return workRecordMapper.toResponse(record);
+    }
+
+    // 퇴근 (본인)
+    public WorkRecordResponse clockOutSelf(Long employeeId) {
+        WorkRecord record = getActiveRecordOf(employeeAccessService.getEmployeeOrThrow(employeeId));
+        record.clockOut(LocalDateTime.now());
+        return workRecordMapper.toResponse(record);
+    }
+
+    // 당일 근무 기록 조회 (본인)
+    @Transactional(readOnly = true)
+    public List<WorkRecordResponse> getMyTodayRecords(Long employeeId) {
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+
+        return workRecordRepository
+                .findAllByEmployeeAndWorkDate(employee, LocalDate.now())
+                .stream()
+                .map(workRecordMapper::toResponse)
+                .toList();
+    }
+
+    // 출근 처리 공통 로직
+    private WorkRecordResponse doClockIn(Employee employee) {
         if (workRecordRepository.existsByEmployeeAndClockOutTimeIsNull(employee)) {
             throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
         }
@@ -58,39 +137,6 @@ public class WorkRecordService {
                 .build();
 
         workRecordRepository.save(record);
-        return workRecordMapper.toResponse(record);
-    }
-
-    // 휴게 시작
-    public WorkRecordResponse startBreak(
-            Long employerId,
-            Long storeId,
-            Long employeeId
-    ) {
-        WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
-        record.startBreak();
-        return workRecordMapper.toResponse(record);
-    }
-
-    // 휴게 종료
-    public WorkRecordResponse endBreak(
-            Long employerId,
-            Long storeId,
-            Long employeeId
-    ) {
-        WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
-        record.endBreak();
-        return workRecordMapper.toResponse(record);
-    }
-
-    // 퇴근
-    public WorkRecordResponse clockOut(
-            Long employerId,
-            Long storeId,
-            Long employeeId
-    ) {
-        WorkRecord record = getActiveRecord(employerId, storeId, employeeId);
-        record.clockOut(LocalDateTime.now());
         return workRecordMapper.toResponse(record);
     }
 
@@ -181,13 +227,8 @@ public class WorkRecordService {
         return employee;
     }
 
-    private WorkRecord getActiveRecord(
-            Long employerId,
-            Long storeId,
-            Long employeeId
-    ) {
-        Employee employee = validateAccess(employerId, storeId, employeeId);
-
+    // 진행 중인 근무 기록 조회
+    private WorkRecord getActiveRecordOf(Employee employee) {
         return workRecordRepository
                 .findFirstByEmployeeAndClockOutTimeIsNullOrderByClockInTimeDesc(employee)
                 .orElseThrow(() ->
