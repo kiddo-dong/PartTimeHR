@@ -82,241 +82,247 @@ PartTimeHR/
 
 ### 사용자(Employer) 생성 시 email 인증 (SMTP)
 - Employer의 계정 생성 시 email 인증 발송
-- Email 인증이 되지않은 계정은 Login 불가
+- Email 인증이 되지 않은 계정은 로그인 불가 (403 `EMAIL_NOT_VERIFIED`)
+- 인증/재설정 메일 재발송은 이메일당 60초 쿨다운 (429)
 
 ### JWT 인증 시스템
-- JWT 토큰 생성 (`JwtTokenProvider`)
-- JWT 토큰 검증 (`JwtAuthenticationFilter`)
-- SecurityContext에 인증 정보 저장
-- 토큰 만료 시간: 24시간 (추 후 refrashToken으로 확장)
+- Access Token 24시간 + Refresh Token 14일 (DB 저장, 계정당 1개)
+- `POST /api/refresh`로 access 토큰 재발급, `POST /api/logout`으로 refresh 폐기
+- 필터에서 인증 실패 시 예외 대신 401 JSON 응답 (스택트레이스 미노출)
 
 ### 역할 기반 API 접근 제어
 - `ROLE_EMPLOYER` - 사장님 권한
 - `ROLE_EMPLOYEE` - 직원 권한
-- `ROLE_ADMIN` - 관리자 권한 (추 후 사용)
+- `ROLE_ADMIN` - 관리자 권한 (추후 사용)
 - `@PreAuthorize` 어노테이션으로 엔드포인트 보호
 
+### 데이터 접근 검증
+- 매장 하위 리소스(직원/정책/스케줄/근무기록)는 모두 매장 소유권 + 소속 검증을 거침
+- 이메일은 사장·직원 통틀어 전역 유일 (로그인 충돌 방지)
+
 ### 비밀번호 보안
-- BCrypt 암호화(필요 시 argon2 확장)
+- BCrypt 암호화 (수정/재설정 포함 모든 경로에서 암호화 저장)
+- 비밀번호 재설정 토큰은 30분 유효, 1회용
 
 ---
 
-## 5. 기능
+## 5. 환경 변수
 
-### 1. Employer (사장님) 기능
-#### 기본 기능
-- 조회
-- 수정
-- 제거
+시크릿은 코드에 커밋하지 않고 환경변수로 주입한다.
 
-#### 인증/인가
-- 회원가입
-- 비밀번호 찾기
-- 비밀번호 리셋
-- 로그인 - JWT 토큰 발급
+| 변수 | 용도 | 기본값 (로컬 개발용) |
+|------|------|---------------------|
+| `DB_URL` | MySQL 접속 URL | `jdbc:mysql://localhost:3306/parttime_hr` |
+| `DB_USERNAME` / `DB_PASSWORD` | DB 계정 | `root` / `password` |
+| `JWT_SECRET` | JWT 서명 키 (운영 필수 교체) | 개발용 기본값 |
+| `JWT_EXPIRATION` | access 토큰 만료(ms) | `86400000` (24h) |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Gmail SMTP 계정/앱 비밀번호 | **MAIL_PASSWORD는 기본값 없음 (필수)** |
+| `APP_BASE_URL` | 메일 링크 기준 URL | `http://localhost:8080` |
+
+---
+
+## 6. 기능
+
+### 1. Employer (사장님)
+#### 인증/계정
+- 회원가입 (첫 매장 + 기본 시급정책 자동 생성, 인증 메일 발송)
+- 로그인 (JWT), 토큰 재발급, 로그아웃
+- 비밀번호 찾기/재설정 (메일 링크, 1회용 토큰)
+- 내 정보 조회/수정
 
 #### 매장 관리
-- 매장 생성 기능 (여러 매장을 가질 수 있음 1:N)
-- 수정
-- 삭제
+- 매장 생성/조회/수정/삭제 (다매장 1:N, 삭제는 소속 직원이 없을 때만)
+- 매장별 시급 정책(직급/시급) 생성/조회/수정/삭제
 
 #### 직원 관리
-- 매장별 직원 등록 - 직원은 스스로 계정 생성이 불가능 -> 사장님이 등록해줘야 계정(Employee) 사용 가능
-- 매장별 직원 정보 수정/제거
-- 매장별 직원 목록 조회 (단일/전체/조건별)
-- 매장별 직원 근태 관리 - 출근/휴게/퇴근(생성/조회/수정/삭제 가능) 
+- 직원 등록 (직원은 자가 가입 불가, 시급 정책 지정 또는 기본 정책)
+- 직원 조회(전체/단일)/수정/삭제
 
-#### 매장 관리
-- 직원 스케줄 관리(생성/조회/수정/제거)
-- 직원 근태 관리(출근/휴게/퇴근/결근 여부)
-- 직원 통계(일간/주간/월간)
+#### 스케줄 관리
+- 생성(시간 겹침 검증, 하루 여러 타임 가능)/수정/삭제
+- 조회: 매장 전체/직원별 × 단일일/기간/주간/월간 (주 시작 요일은 매장 설정)
 
-### 2. Employee (직원) 기능
-#### 기본 기능
-- 조회
-- 스케줄 조회
+#### 근태 관리
+- 원클릭 출근/휴게 시작/휴게 종료/퇴근 (휴게 여러 번 가능, 누적 집계)
+- 수동 생성/수정(부분 수정)/삭제
+- 기록 당시 시급/직급 스냅샷 저장
 
-#### 인증/인가
-- 로그인 - JWT 토큰 발급
+#### 근태 통계
+- 일별: 스케줄 vs 실제 출퇴근 대조 (WORKED/LATE/EARLY_LEAVE/PARTIAL/ABSENT/UNSCHEDULED)
+- 기간 요약: 출근율(%), 지각/결근 집계
+
+### 2. Employee (직원)
+- 로그인 (JWT), 토큰 재발급, 로그아웃
+- 내 정보 조회 (소속 매장/직급/시급 포함)
+- 본인 스케줄 조회 (당일/기간/주간/월간)
+- 본인 출근/휴게/퇴근 + 당일 근무 기록 조회
 
 ---
 
-## 6. 아키텍처 패턴
+## 7. 아키텍처 패턴
 
-### 레이어드 아키텍처
+### 도메인별 3계층 (Layered Architecture)
 ```
-Controller (표현 계층)
+presentation (Controller, DTO)
     ↓
-Service (비즈니스 계층)
+application (Service, Mapper - 유스케이스, 트랜잭션 경계)
     ↓
-Repository (데이터 접근 계층) - jpa 사용
+domain (Entity, Repository, 도메인 예외)
     ↓
-Database - MySql 8.0
+Database - MySQL 8.0
 ```
 
 ### 역할 분담
-- **Controller**: HTTP 요청/응답 처리, 인증 정보 추출
-- **Service**: 비즈니스 로직, Entity ↔ DTO 변환 (MapStruct)
-- **Repository**: 데이터베이스 접근
-- **DTO** : 데이터 안전 접근
-- **Mapper**: Entity와 DTO 간 변환 (MapStruct)
+- **Controller**: HTTP 요청/응답 처리, 인증 정보 추출 (Repository 직접 접근 금지)
+- **Service**: 비즈니스 로직, 접근 권한 검증, Entity ↔ DTO 변환 (MapStruct)
+- **Repository**: 데이터베이스 접근 (N+1 방지: @EntityGraph / fetch join)
+- **Entity**: setter 대신 의도가 드러나는 도메인 메서드 (updateBasicInfo, changePassword, clockOut 등)
+
 ---
 
-## 7. 주요 엔티티
+## 8. 주요 엔티티
 
 ### Employer (사장님)
 ```
-- id: Long (PK)
-- email: String (unique, 로그인용)
-- password: String (암호화)
-- emailVerified: boolean (이메일 인증 확인용)
-- role: Role (ROLE_EMPLOYER)
-- name: String
-- phone: String
-- stores: List<Store> (One To Many 1:n 대응)
-- createdAt: LocalDateTime 
-- updatedAt: LocalDateTime
+- id, email(전역 unique), password(BCrypt), emailVerified, role
+- name, phone, stores(1:N), createdAt/updatedAt
 ```
 
-### Store (가게)
+### Store (매장)
 ```
-- id: Long (PK)
-- name: String;
-- phone: String;
-- address: String;
-- weekStartDay: Integer
-- weeklyPayApplicable: Boolean
-- employer: Employer (Many to One)
-- employees: List<Employee> (One to Many)
-- createdAt: LocalDateTime    
-- updatedAt: LocalDateTime
+- id, name, phone, address
+- weekStartDay(주 시작 요일), weeklyPayApplicable(주휴수당 여부)
+- employer(N:1), employees(1:N), createdAt/updatedAt
 ```
 
 ### Employee (직원)
 ```
-- id: Long (PK)
-- email: String (unique, 로그인용)
-- password: String (암호화)
-- name: String
-- phone: String
-- store: Store (ManyToOne)
-- payPolicy: PayPolicy (직급/시급 | ManyToOne)
-- role: Role (ROLE_EMPLOYEE)
-- createdAt: LocalDateTime
-- updatedAt: LocalDateTime
+- id, email(전역 unique), password(BCrypt), name, phone
+- store(N:1), payPolicy(N:1), role, createdAt/updatedAt
 ```
+
 ### PayPolicy (직급/시급 정책)
 ```
-- id : Long (PK)
-- store : Store (Many To One)
-- jobTitle : String
-- hourlyWage : int
-- isDefault : boolean
-- createdAt : LocalDateTime
-```
----
-
-## 8. API 명세
-
-### Employer APIs
-
-| Method | Endpoint | 설명 | 인증 | 권한 |
-|--------|----------|------|------|------|
-| POST | `/api/employers/signup` | 회원가입 | ❌ | - |
-| POST | `/api/employers/login` | 로그인 | ❌ | - |
-| GET | `/api/employers/me` | 내 정보 조회 | ✅ | - |
-| GET | `/api/employers/profile` | 프로필 조회 | ✅ | - |
-| GET | `/api/employers/dashboard` | 대시보드 | ✅ | ROLE_EMPLOYER |
-| POST | `/api/employers/employees` | 직원 등록 | ✅ | ROLE_EMPLOYER |
-| GET | `/api/employers/employees` | 직원 목록 | ✅ | ROLE_EMPLOYER |
-
-### Employee APIs
-
-| Method | Endpoint | 설명 | 인증 | 권한 |
-|--------|----------|------|------|------|
-| POST | `/api/employees/signup` | 회원가입 | ❌ | - |
-| POST | `/api/employees/login` | 로그인 | ❌ | - |
-| GET | `/api/employees/me` | 내 정보 조회 | ✅ | - |
-| GET | `/api/employees/dashboard` | 대시보드 | ✅ | ROLE_EMPLOYEE |
-
----
-
-## 9. 주요 특징
-
-### 1. Security 설정
-- CSRF 비활성화 (JWT 사용)
-- Stateless 세션 (JWT 기반)
-- `@PreAuthorize` 어노테이션으로 api 권한 제어
-- SecurityConfig에서 URL 기반 접근 제어
-- JWT 토큰에 역할 정보 포함
-
-### 2. MapStruct 활용
-- Entity ↔ DTO 자동 변환
-- 컴파일 타임 코드 생성 (런타임 오버헤드 없음)
-- 타입 안전성 보장
-
-### 3. 전역 예외 처리
-- `GlobalExceptionHandler`로 일관된 에러 응답
-- Validation 에러 처리
-- 비즈니스 로직 에러 처리
-
----
-
-## 10. 데이터베이스 스키마
-
-### employer 테이블
+- id, store(N:1), jobTitle, hourlyWage, isDefault, active, createdAt
 ```
 
+### Schedule (근무 예정)
+```
+- id, store(N:1), employee(N:1), workDate
+- startTime/endTime, confirmed, createdAt/updatedAt
 ```
 
-### employee 테이블
+### WorkRecord (근태 기록)
 ```
+- id, employee(N:1), workDate, clockInTime/clockOutTime
+- breakStartTime/breakEndTime(마지막 휴게), totalBreakMinutes(누적)
+- totalWorkedMinutes/netWorkedMinutes(퇴근 시 확정)
+- appliedHourlyWage/appliedJobTitle(당시 정책 스냅샷)
+- status(IN_PROGRESS/ON_BREAK/COMPLETED/ABSENT), memo
+```
+
+### RefreshToken / EmailVerification / PasswordResetToken
+```
+- UUID 토큰 + 만료 시각 (각 14일 / 30분 / 30분)
 ```
 
 ---
 
-## 11. 테스트 상태
+## 9. API 명세
 
-### 완료된 테스트
+### 인증 (공개)
 
-### 테스트 도구
-- Spring Test
-- Postman
-- JWT.io (토큰 검증)
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| POST | `/api/login` | 통합 로그인 (access + refresh 토큰 발급) |
+| POST | `/api/refresh` | access 토큰 재발급 |
+| POST | `/api/logout` | refresh 토큰 폐기 |
+| POST | `/api/employers/signup` | 사장 회원가입 |
+| GET | `/api/email/verify?token=` | 이메일 인증 |
+| POST | `/api/email/resend?email=` | 인증 메일 재발송 (60초 쿨다운) |
+| POST | `/api/employers/password/reset-request` | 비밀번호 재설정 메일 |
+| POST | `/api/employers/password/reset` | 비밀번호 재설정 |
+
+### 사장님 (ROLE_EMPLOYER)
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/api/employers/me` | 내 정보 조회 |
+| PUT | `/api/employers` | 내 정보 수정 |
+| POST / GET | `/api/stores` | 매장 생성 / 내 매장 전체 조회 |
+| GET / PUT / DELETE | `/api/stores/{storeId}` | 매장 조회 / 수정 / 삭제 |
+| GET / POST | `/api/stores/{storeId}/paypolicies` | 시급 정책 목록 / 생성 |
+| PUT / DELETE | `/api/stores/{storeId}/paypolicies/{id}` | 정책 수정 / 삭제 |
+| POST | `/api/stores/{storeId}/employees` | 직원 등록 |
+| GET | `/api/stores/{storeId}/employees/all` | 직원 전체 조회 |
+| GET / PUT / DELETE | `/api/stores/{storeId}/employees/{id}` | 직원 조회 / 수정 / 삭제 |
+| POST | `/api/stores/{storeId}/schedules` | 스케줄 생성 |
+| PUT / DELETE | `/api/stores/{storeId}/schedules/{id}/employees/{employeeId}` | 스케줄 수정 / 삭제 |
+| GET | `/api/stores/{storeId}/schedules/date·period·week·month` | 매장 전체 스케줄 조회 |
+| GET | `/api/stores/{storeId}/schedules/employees/{id}/date·period·week·month` | 직원별 스케줄 조회 |
+| POST | `/api/stores/{storeId}/work-records/employees/{id}/clock-in·break-start·break-end·clock-out` | 원클릭 근태 |
+| POST | `/api/stores/{storeId}/work-records/employees/manual` | 근무 기록 수동 생성 |
+| PUT / DELETE | `/api/stores/{storeId}/work-records/{id}` | 근무 기록 수정 / 삭제 |
+| GET | `/api/stores/{storeId}/attendance/daily?date=` | 일별 근태 통계 |
+| GET | `/api/stores/{storeId}/attendance/summary?from=&to=` | 기간 근태 요약 (출근율) |
+
+### 직원 (ROLE_EMPLOYEE)
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/api/employee/me` | 내 정보 조회 |
+| GET | `/api/employee/schedules/today·period·week·month` | 본인 스케줄 조회 |
+| POST | `/api/employee/work-records/clock-in·break-start·break-end·clock-out` | 본인 출근/휴게/퇴근 |
+| GET | `/api/employee/work-records/today` | 본인 당일 근무 기록 |
+
+### 에러 응답 규약
+
+```json
+{ "code": "ACCESS_DENIED", "message": "가게 접근 권한이 없습니다.", "timestamp": "..." }
+```
+
+| 상태 | 코드 | 상황 |
+|------|------|------|
+| 401 | INVALID_CREDENTIALS | 로그인/refresh 실패 |
+| 403 | ACCESS_DENIED, EMAIL_NOT_VERIFIED | 권한/소유권 위반, 미인증 로그인 |
+| 404 | NOT_FOUND | 리소스 없음 |
+| 409 | CONFLICT, INVALID_STATE | 중복(이메일/스케줄), 상태 충돌(진행 중 근무 등) |
+| 429 | TOO_MANY_REQUESTS | 메일 재발송 쿨다운 |
+| 400 | INVALID_ARGUMENT, VALIDATION_FAILED | 잘못된 요청 |
+
 ---
 
-## 12. 추후 추가 기능
-   
-2. 알림 기능
-   - 스케줄 변경 알림
-   - 급여 지급 알림
-   
-### 개선 사항
-1. Refresh Token 구현
-2. 비밀번호 변경 기능
-3. 로그아웃 기능 (토큰 블랙리스트)
+## 10. 테스트
+
+- `WorkRecordTest`: 근태 상태 머신 (다회 휴게, 집계 확정, 상태 위반)
+- `AttendanceServiceTest`: 근태 통계 (결근/지각 판정, 기간 집계, 범위 검증)
+- 실행: `./mvnw test`
 
 ---
 
-## 13. 개발 이슈
+## 11. 추후 추가 기능
 
-1. Contoller Login기반에서 조회 비용 증가-> SpringSecurity FormLogin 변경
-2. lombok & MapStruct 병행 사용으로 인한 Runtime Error -> 의존성 추가
-3. JPA의 DB조회 비용 증가 -> 
+1. 급여 계산 (스냅샷 시급 × 실근무 시간, 주휴수당)
+2. 알림 기능 (스케줄 변경, 급여 지급)
+3. 직급별 스케줄 조회
+4. 직원 soft delete (급여 이력 보존)
+5. access 토큰 블랙리스트 (현재 로그아웃은 refresh만 폐기)
+6. 통합 테스트 확충 (Testcontainers)
+
 ---
 
-## 14. 중요 포인트
+## 12. 중요 포인트
 
-1. **Spring Security + JWT**: Stateless 인증 구현
-2. **SMTP 전송 구현**: Employer 생성 시 email 인증(보안 강화)
-2. **MapStruct**: Entity ↔ DTO 자동 변환
-3. **레이어드 아키텍처**: 역할 분담 구조화
-4. **역할 기반 접근 제어**: Role 별 API 접근 제한
-5. **전역 예외 처리**: 일관된 에러 응답
+1. **도메인별 3계층**: presentation → application → domain 단방향 의존
+2. **접근 검증 일원화**: StoreAccessService/EmployeeAccessService로 소유권·소속 검증
+3. **시급 스냅샷**: 근태 기록에 당시 시급/직급 저장 → 정책 변경에도 급여 이력 안전
+4. **Stateless JWT + Refresh Token**: DB 저장 refresh로 로그아웃/재발급 지원
+5. **전역 예외 처리**: 커스텀 예외 → 일관된 상태 코드/JSON 매핑
+6. **시크릿 외부화**: 환경변수 주입 (기본값은 로컬 개발용)
 
 ---
 
 **작성자**: 최동현
-**작성일**: 2025-12-24  
-**수정일**: 2026-01-12
+**작성일**: 2025-12-24
+**수정일**: 2026-07-13
 **프로젝트 상태**: 진행중
