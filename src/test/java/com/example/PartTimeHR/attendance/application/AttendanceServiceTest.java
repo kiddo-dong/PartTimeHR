@@ -74,6 +74,36 @@ class AttendanceServiceTest {
     }
 
     @Test
+    void getDailyAttendance_returnsScheduled_whenScheduleNotEndedYet() {
+        Long employerId = 1L;
+        Long storeId = 10L;
+        LocalDate date = LocalDate.now().plusDays(1); // 미래 날짜 - 아직 결근 아님
+
+        Store store = store(storeId);
+        Employee employee = employee(100L, "Dana", store);
+
+        Schedule schedule = Schedule.builder()
+                .id(12L)
+                .store(store)
+                .employee(employee)
+                .workDate(date)
+                .startTime(date.atTime(9, 0))
+                .endTime(date.atTime(18, 0))
+                .confirmed(true)
+                .build();
+
+        when(storeAccessService.getMyStore(storeId, employerId)).thenReturn(store);
+        when(scheduleRepository.findByStoreAndWorkDate(store, date)).thenReturn(List.of(schedule));
+        when(workRecordRepository.findAllByStoreAndWorkDate(storeId, date)).thenReturn(List.of());
+
+        AttendanceDailyResponse result = attendanceService.getDailyAttendance(employerId, storeId, date);
+
+        assertThat(result.getScheduledCount()).isEqualTo(1);
+        assertThat(result.getAbsentCount()).isEqualTo(0);
+        assertThat(result.getItems().get(0).getStatus()).isEqualTo(AttendanceMatchStatus.SCHEDULED);
+    }
+
+    @Test
     void getDailyAttendance_returnsLate_whenClockInAfterScheduleStart() {
         Long employerId = 1L;
         Long storeId = 10L;

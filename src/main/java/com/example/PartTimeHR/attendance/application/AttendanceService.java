@@ -155,9 +155,15 @@ public class AttendanceService {
             int earlyLeaveMinutes = 0;
 
             if (!employeeSchedules.isEmpty() && records.isEmpty()) {
-                status = AttendanceMatchStatus.ABSENT;
                 scheduledCount++;
-                absentCount++;
+
+                // 스케줄이 아직 끝나지 않았으면(당일 근무 전, 미래 날짜) 결근으로 치지 않는다
+                if (scheduledEnd.isBefore(LocalDateTime.now())) {
+                    status = AttendanceMatchStatus.ABSENT;
+                    absentCount++;
+                } else {
+                    status = AttendanceMatchStatus.SCHEDULED;
+                }
             } else if (employeeSchedules.isEmpty()) {
                 status = AttendanceMatchStatus.UNSCHEDULED;
                 workedCount++;
