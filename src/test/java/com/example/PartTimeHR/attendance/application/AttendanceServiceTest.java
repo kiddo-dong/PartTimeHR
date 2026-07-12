@@ -56,7 +56,6 @@ class AttendanceServiceTest {
                 .workDate(date)
                 .startTime(LocalDateTime.of(2026, 1, 10, 9, 0))
                 .endTime(LocalDateTime.of(2026, 1, 10, 18, 0))
-                .confirmed(true)
                 .build();
 
         when(storeAccessService.getMyStore(storeId, employerId)).thenReturn(store);
@@ -88,7 +87,6 @@ class AttendanceServiceTest {
                 .workDate(date)
                 .startTime(date.atTime(9, 0))
                 .endTime(date.atTime(18, 0))
-                .confirmed(true)
                 .build();
 
         when(storeAccessService.getMyStore(storeId, employerId)).thenReturn(store);
@@ -118,7 +116,6 @@ class AttendanceServiceTest {
                 .workDate(date)
                 .startTime(LocalDateTime.of(2026, 1, 10, 9, 0))
                 .endTime(LocalDateTime.of(2026, 1, 10, 18, 0))
-                .confirmed(true)
                 .build();
 
         WorkRecord record = WorkRecord.builder()
@@ -160,7 +157,6 @@ class AttendanceServiceTest {
                 .workDate(from)
                 .startTime(LocalDateTime.of(2026, 1, 10, 9, 0))
                 .endTime(LocalDateTime.of(2026, 1, 10, 18, 0))
-                .confirmed(true)
                 .build();
 
         Schedule d2Schedule = Schedule.builder()
@@ -170,7 +166,6 @@ class AttendanceServiceTest {
                 .workDate(to)
                 .startTime(LocalDateTime.of(2026, 1, 11, 9, 0))
                 .endTime(LocalDateTime.of(2026, 1, 11, 18, 0))
-                .confirmed(true)
                 .build();
 
         WorkRecord d2Record = WorkRecord.builder()

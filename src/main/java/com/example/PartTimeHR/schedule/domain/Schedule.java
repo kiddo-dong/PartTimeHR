@@ -7,8 +7,12 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
+/**
+ * 근무 예정 (스케줄).
+ * workDate는 항상 startTime의 날짜에서 유도된다 — 따로 받지 않아
+ * 날짜-시간 불일치가 원천적으로 불가능하다.
+ */
 @Entity
 @Table(name = "schedule")
 @Getter
@@ -31,7 +35,7 @@ public class Schedule {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    // 근무 날짜
+    // 근무 날짜 (startTime에서 유도, 날짜 기준 조회용 인덱스 컬럼)
     @Column(nullable = false)
     private LocalDate workDate;
 
@@ -42,10 +46,6 @@ public class Schedule {
     @Column(nullable = false)
     private LocalDateTime endTime;
 
-    // 확정 여부 (사장이 승인했는지)
-    @Column(nullable = false)
-    private boolean confirmed;
-
     // 생성 / 수정 시간
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -53,7 +53,6 @@ public class Schedule {
     @PrePersist
     void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.confirmed = false;
     }
 
     @PreUpdate
@@ -61,12 +60,29 @@ public class Schedule {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /* 비즈니스 로직 */
+    /* 팩토리 - 생성 시 workDate를 startTime에서 유도 */
+    public static Schedule create(
+            Store store,
+            Employee employee,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        Schedule schedule = new Schedule();
+        schedule.store = store;
+        schedule.employee = employee;
+        schedule.startTime = startTime;
+        schedule.endTime = endTime;
+        schedule.workDate = startTime.toLocalDate();
+        return schedule;
+    }
+
+    /* 비즈니스 로직 - 시간이 바뀌면 workDate도 따라간다 */
     public void updateTime(
             LocalDateTime startTime,
             LocalDateTime endTime
     ) {
         this.startTime = startTime;
         this.endTime = endTime;
+        this.workDate = startTime.toLocalDate();
     }
 }

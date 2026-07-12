@@ -5,7 +5,6 @@ import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 @Getter
 @AllArgsConstructor
@@ -18,6 +17,4 @@ public class ScheduleResponse {
     private LocalDate workDate;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-
-    private boolean confirmed;
 }

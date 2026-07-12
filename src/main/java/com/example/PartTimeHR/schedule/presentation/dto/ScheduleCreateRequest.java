@@ -3,18 +3,14 @@ package com.example.PartTimeHR.schedule.presentation.dto;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
+// 근무 날짜는 startTime의 날짜에서 유도되므로 따로 받지 않는다
 @Getter
 public class ScheduleCreateRequest {
 
     @NotNull
     private Long employeeId;
-
-    @NotNull
-    private LocalDate workDate;
 
     @NotNull
     private LocalDateTime startTime;

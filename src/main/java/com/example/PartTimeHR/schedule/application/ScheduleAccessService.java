@@ -22,10 +22,10 @@ public class ScheduleAccessService {
     /**
      * 근무 시간 검증.
      * - 시작 < 종료
-     * - 시작 시간의 날짜는 workDate와 일치 (불일치하면 겹침 검사가 무력화됨)
-     * - 종료는 당일 또는 다음날까지 허용 (야간 근무)
+     * - 종료는 시작일 다음날까지 허용 (야간 근무)
+     * (근무 날짜는 startTime에서 유도되므로 날짜 일치 검증이 필요 없다)
      */
-    public void validateWorkTime(LocalDate workDate, LocalDateTime startTime, LocalDateTime endTime) {
+    public void validateWorkTime(LocalDateTime startTime, LocalDateTime endTime) {
 
         if (startTime == null || endTime == null) {
             throw new InvalidScheduleException("근무 시간이 비어있습니다.");
@@ -35,11 +35,7 @@ public class ScheduleAccessService {
             throw new InvalidScheduleException("근무 시간이 올바르지 않습니다.");
         }
 
-        if (!startTime.toLocalDate().equals(workDate)) {
-            throw new InvalidScheduleException("근무 시작 시간은 근무 날짜와 같은 날이어야 합니다.");
-        }
-
-        if (endTime.toLocalDate().isAfter(workDate.plusDays(1))) {
+        if (endTime.toLocalDate().isAfter(startTime.toLocalDate().plusDays(1))) {
             throw new InvalidScheduleException("근무 종료는 다음날까지만 가능합니다.");
         }
     }
