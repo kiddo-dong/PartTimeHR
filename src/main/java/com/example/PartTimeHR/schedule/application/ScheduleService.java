@@ -1,25 +1,19 @@
 package com.example.PartTimeHR.schedule.application;
 
 import com.example.PartTimeHR.employee.domain.Employee;
-import com.example.PartTimeHR.employee.domain.EmployeeNotFoundException;
 import com.example.PartTimeHR.employee.application.EmployeeAccessService;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.presentation.dto.ScheduleCreateRequest;
 import com.example.PartTimeHR.schedule.presentation.dto.ScheduleResponse;
 import com.example.PartTimeHR.schedule.presentation.dto.ScheduleUpdateRequest;
-import com.example.PartTimeHR.schedule.domain.DuplicateScheduleException;
-import com.example.PartTimeHR.schedule.application.ScheduleMapper;
 import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
 import com.example.PartTimeHR.schedule.domain.ScheduleDateCalculator;
 import com.example.PartTimeHR.store.domain.Store;
-import com.example.PartTimeHR.store.domain.StoreAccessDeniedException;
-import com.example.PartTimeHR.store.domain.StoreNotFoundException;
 import com.example.PartTimeHR.store.application.StoreAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 @Service
@@ -52,13 +46,13 @@ public class ScheduleService {
                 request.getEndTime()
         );
 
-        // 중복 스케줄 방지
-        if (scheduleRepository.existsByEmployeeIdAndWorkDate(
+        // 시간 겹침 검증 (겹치지만 않으면 하루에 여러 타임 근무 가능)
+        scheduleAccessService.validateNoOverlap(
                 employee.getId(),
-                request.getWorkDate()
-        )) {
-            throw new DuplicateScheduleException();
-        }
+                request.getWorkDate(),
+                request.getStartTime(),
+                request.getEndTime()
+        );
 
         Schedule schedule = Schedule.builder()
                 .store(store)

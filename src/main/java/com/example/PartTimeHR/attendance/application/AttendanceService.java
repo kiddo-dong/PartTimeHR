@@ -104,9 +104,12 @@ public class AttendanceService {
     }
 
     private DailyMetrics buildDailyMetrics(LocalDate date, List<Schedule> schedules, List<WorkRecord> workRecords) {
-        Map<Long, Schedule> scheduleByEmployee = new HashMap<>();
+        // 하루에 여러 타임 근무가 가능하므로 직원당 스케줄을 리스트로 묶는다
+        Map<Long, List<Schedule>> schedulesByEmployee = new HashMap<>();
         for (Schedule schedule : schedules) {
-            scheduleByEmployee.put(schedule.getEmployee().getId(), schedule);
+            schedulesByEmployee
+                    .computeIfAbsent(schedule.getEmployee().getId(), key -> new ArrayList<>())
+                    .add(schedule);
         }
 
         Map<Long, List<WorkRecord>> recordsByEmployee = new HashMap<>();
@@ -117,7 +120,7 @@ public class AttendanceService {
         }
 
         Set<Long> targetEmployeeIds = new HashSet<>();
-        targetEmployeeIds.addAll(scheduleByEmployee.keySet());
+        targetEmployeeIds.addAll(schedulesByEmployee.keySet());
         targetEmployeeIds.addAll(recordsByEmployee.keySet());
 
         List<AttendanceDailyEmployeeResponse> items = new ArrayList<>();
@@ -129,21 +132,33 @@ public class AttendanceService {
         int lateCount = 0;
 
         for (Long employeeId : targetEmployeeIds) {
-            Schedule schedule = scheduleByEmployee.get(employeeId);
+            List<Schedule> employeeSchedules = schedulesByEmployee.getOrDefault(employeeId, List.of());
             List<WorkRecord> records = recordsByEmployee.getOrDefault(employeeId, List.of());
 
             AttendanceAggregate aggregate = aggregate(records);
-            Employee employee = getEmployee(schedule, records);
+            Employee employee = getEmployee(employeeSchedules, records);
+
+            // 스케줄이 여러 개면 가장 이른 시작~가장 늦은 종료를 그날의 근무 예정 구간으로 본다
+            LocalDateTime scheduledStart = null;
+            LocalDateTime scheduledEnd = null;
+            for (Schedule schedule : employeeSchedules) {
+                if (scheduledStart == null || schedule.getStartTime().isBefore(scheduledStart)) {
+                    scheduledStart = schedule.getStartTime();
+                }
+                if (scheduledEnd == null || schedule.getEndTime().isAfter(scheduledEnd)) {
+                    scheduledEnd = schedule.getEndTime();
+                }
+            }
 
             AttendanceMatchStatus status;
             int lateMinutes = 0;
             int earlyLeaveMinutes = 0;
 
-            if (schedule != null && records.isEmpty()) {
+            if (!employeeSchedules.isEmpty() && records.isEmpty()) {
                 status = AttendanceMatchStatus.ABSENT;
                 scheduledCount++;
                 absentCount++;
-            } else if (schedule == null) {
+            } else if (employeeSchedules.isEmpty()) {
                 status = AttendanceMatchStatus.UNSCHEDULED;
                 workedCount++;
                 unscheduledCount++;
@@ -154,12 +169,12 @@ public class AttendanceService {
                 if (aggregate.clockOutTime == null) {
                     status = AttendanceMatchStatus.PARTIAL;
                 } else {
-                    if (aggregate.clockInTime != null && aggregate.clockInTime.isAfter(schedule.getStartTime())) {
-                        lateMinutes = (int) ChronoUnit.MINUTES.between(schedule.getStartTime(), aggregate.clockInTime);
+                    if (aggregate.clockInTime != null && aggregate.clockInTime.isAfter(scheduledStart)) {
+                        lateMinutes = (int) ChronoUnit.MINUTES.between(scheduledStart, aggregate.clockInTime);
                     }
 
-                    if (aggregate.clockOutTime.isBefore(schedule.getEndTime())) {
-                        earlyLeaveMinutes = (int) ChronoUnit.MINUTES.between(aggregate.clockOutTime, schedule.getEndTime());
+                    if (aggregate.clockOutTime.isBefore(scheduledEnd)) {
+                        earlyLeaveMinutes = (int) ChronoUnit.MINUTES.between(aggregate.clockOutTime, scheduledEnd);
                     }
 
                     if (lateMinutes > 0) {
@@ -177,8 +192,8 @@ public class AttendanceService {
                     .employeeId(employeeId)
                     .employeeName(employee != null ? employee.getName() : null)
                     .status(status)
-                    .scheduledStartTime(schedule != null ? schedule.getStartTime() : null)
-                    .scheduledEndTime(schedule != null ? schedule.getEndTime() : null)
+                    .scheduledStartTime(scheduledStart)
+                    .scheduledEndTime(scheduledEnd)
                     .actualClockInTime(aggregate.clockInTime)
                     .actualClockOutTime(aggregate.clockOutTime)
                     .lateMinutes(lateMinutes)
@@ -203,9 +218,9 @@ public class AttendanceService {
         }
     }
 
-    private Employee getEmployee(Schedule schedule, List<WorkRecord> records) {
-        if (schedule != null) {
-            return schedule.getEmployee();
+    private Employee getEmployee(List<Schedule> schedules, List<WorkRecord> records) {
+        if (!schedules.isEmpty()) {
+            return schedules.get(0).getEmployee();
         }
         if (!records.isEmpty()) {
             return records.get(0).getEmployee();

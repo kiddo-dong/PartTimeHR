@@ -16,9 +16,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     @EntityGraph(attributePaths = "employee")
     List<Schedule> findByStoreAndWorkDate(Store store, LocalDate workDate);
 
-    // 직원 중복 스케줄 방지
-    boolean existsByEmployeeIdAndWorkDate(Long employeeId, LocalDate workDate);
-
     // 근무 시간 겹침 검사 (같은 날짜에 시간대가 겹치는 스케줄 존재 여부)
     @Query("""
     select count(s) > 0
