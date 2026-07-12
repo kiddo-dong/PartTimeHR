@@ -1,6 +1,7 @@
 package com.example.PartTimeHR.employer.presentation;
 
 import com.example.PartTimeHR.employer.presentation.dto.EmployerSignupRequest;
+import com.example.PartTimeHR.employer.presentation.dto.PasswordResetConfirmRequest;
 import com.example.PartTimeHR.employer.presentation.dto.PasswordResetRequest;
 import com.example.PartTimeHR.employer.application.EmployerAuthService;
 import jakarta.validation.Valid;
@@ -34,15 +35,16 @@ public class EmployerAuthController {
         return ResponseEntity.ok("메일 발송 완료");
     }
 
-    // 비밀번호 리셋
+    // 비밀번호 리셋 (비밀번호가 서버 로그에 남지 않도록 body로 받는다)
     @PostMapping("/password/reset")
     public ResponseEntity<String> resetPassword(
-            @RequestParam String token,
-            @RequestParam String newPassword,
-            @RequestParam String newPasswordConfirm
+            @Valid @RequestBody PasswordResetConfirmRequest request
     ){
-
-        employerAuthService.resetPassword(token, newPassword, newPasswordConfirm);
+        employerAuthService.resetPassword(
+                request.getToken(),
+                request.getNewPassword(),
+                request.getNewPasswordConfirm()
+        );
         return ResponseEntity.ok("비밀번호 재설정 완료");
     }
 

@@ -194,8 +194,10 @@ public class EmployerAuthService {
     }
 
     // 비밀번호 리셋을 위한 이메일 인증 템플릿
+    // 링크는 백엔드 API가 아니라 프론트엔드의 재설정 폼 페이지로 보낸다
+    // (API는 POST라 이메일 링크(GET)로 직접 열면 405가 난다)
     private String createPasswordResetEmailHtml(String name, String token) {
-        String resetLink = appProperties.getBaseUrl() + "/api/employers/password/reset?token=" + token;
+        String resetLink = appProperties.getFrontendUrl() + "/reset-password?token=" + token;
 
         return "<!DOCTYPE html>"
                 + "<html lang='ko'>"
