@@ -265,6 +265,8 @@ Database - MySQL 8.0
 | PUT / DELETE | `/api/stores/{storeId}/work-records/{id}` | 근무 기록 수정 / 삭제 |
 | GET | `/api/stores/{storeId}/attendance/daily?date=` | 일별 근태 통계 |
 | GET | `/api/stores/{storeId}/attendance/summary?from=&to=` | 기간 근태 요약 (출근율) |
+| GET | `/api/stores/{storeId}/payroll?from=&to=` | 매장 전체 급여 요약 |
+| GET | `/api/stores/{storeId}/payroll/employees/{id}?from=&to=` | 직원별 급여 상세 (기록별 내역) |
 
 ### 직원 (ROLE_EMPLOYEE)
 
@@ -274,6 +276,16 @@ Database - MySQL 8.0
 | GET | `/api/employee/schedules/today·period·week·month` | 본인 스케줄 조회 |
 | POST | `/api/employee/work-records/clock-in·break-start·break-end·clock-out` | 본인 출근/휴게/퇴근 |
 | GET | `/api/employee/work-records/today` | 본인 당일 근무 기록 |
+| GET | `/api/employee/payroll?from=&to=` | 본인 급여 조회 |
+
+### 급여 계산 규칙 (MVP)
+
+- **기본급**: 퇴근 완료된 기록별 `실근무 분 × 당시 시급 스냅샷` (원 단위 반올림)
+- **주휴수당**: 매장이 주휴 적용이고 한 주(매장의 주 시작 요일 기준) 실근무 15시간 이상이면
+  `min(주 실근무시간, 40) / 40 × 8시간 × 그 주 평균 시급`
+- 단순화: 개근 여부 미반영, 조회 구간이 주 중간을 자르면 그 주는 잘린 부분만 집계
+- **미퇴근 자동 마감**: 퇴근을 찍지 않은 채 다음 출근을 하면 이전 근무는
+  근무일 23:59 기준으로 자동 마감되고 메모에 `[미퇴근 자동 마감]` 표시 (사장이 수동 수정 가능)
 
 ### 에러 응답 규약
 
@@ -294,20 +306,21 @@ Database - MySQL 8.0
 
 ## 10. 테스트
 
-- `WorkRecordTest`: 근태 상태 머신 (다회 휴게, 집계 확정, 상태 위반)
-- `AttendanceServiceTest`: 근태 통계 (결근/지각 판정, 기간 집계, 범위 검증)
+- `WorkRecordTest`: 근태 상태 머신 (다회 휴게, 집계 확정, 자동 마감, 상태 위반)
+- `PayrollCalculatorTest`: 급여 계산 (기본급, 주휴수당 판정, 주별 분리)
+- `AttendanceServiceTest`: 근태 통계 (결근/지각/예정 판정, 기간 집계, 범위 검증)
 - 실행: `./mvnw test`
 
 ---
 
 ## 11. 추후 추가 기능
 
-1. 급여 계산 (스냅샷 시급 × 실근무 시간, 주휴수당)
-2. 알림 기능 (스케줄 변경, 급여 지급)
-3. 직급별 스케줄 조회
-4. 직원 soft delete (급여 이력 보존)
-5. access 토큰 블랙리스트 (현재 로그아웃은 refresh만 폐기)
-6. 통합 테스트 확충 (Testcontainers)
+1. 알림 기능 (스케줄 변경, 급여 지급)
+2. 직급별 스케줄 조회
+3. 직원 soft delete (급여 이력 보존)
+4. access 토큰 블랙리스트 (현재 로그아웃은 refresh만 폐기)
+5. 통합 테스트 확충 (Testcontainers)
+6. 급여 계산 고도화 (개근 판정, 야간/연장 수당, 세금/보험 공제)
 
 ---
 
