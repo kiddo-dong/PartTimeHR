@@ -47,5 +47,15 @@ public class PayPolicy {
         this.isDefault = isDefault;
     }
 
+    // 부분 수정: null인 필드는 기존 값 유지
+    public void update(String jobTitle, Integer hourlyWage) {
+        if (jobTitle != null) {
+            this.jobTitle = jobTitle;
+        }
+        if (hourlyWage != null) {
+            this.hourlyWage = hourlyWage;
+        }
+    }
+
 }
 

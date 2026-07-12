@@ -63,7 +63,8 @@ public class PayPolicyService {
             throw new StoreAccessDeniedException();
         }
 
-        payPolicyMapper.updatePayPolicyFromRequest(request, policy);
+        // MapStruct는 setter 없는 엔티티에 빈 메서드를 생성해 no-op이었음 → 도메인 메서드 사용
+        policy.update(request.getJobTitle(), request.getHourlyWage());
 
         // dirty checking으로 자동 저장
     }
