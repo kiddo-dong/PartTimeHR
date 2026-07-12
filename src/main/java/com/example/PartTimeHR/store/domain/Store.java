@@ -29,7 +29,13 @@ public class Store {
     @Column(name = "week_start_day", nullable = false)
     private Integer weekStartDay; // 주 시작일
     @Column(name = "weekly_pay_applicable", nullable = false)
-    private Boolean weeklyPayApplicable; // (주휴 수당 제공 여부
+    private Boolean weeklyPayApplicable; // 주휴수당 적용 여부
+
+    // 상시 근로자 5인 이상 여부 - 연장/야간 가산수당(근로기준법 제56조)은
+    // 5인 이상 사업장에만 적용된다 (주휴수당은 인원과 무관하게 적용)
+    @Builder.Default
+    @Column(name = "five_or_more_employees", nullable = false)
+    private Boolean fiveOrMoreEmployees = false;
 
     // 사장
     @ManyToOne
@@ -66,12 +72,14 @@ public class Store {
             String phone,
             String address,
             Integer weekStartDay,
-            Boolean weeklyPayApplicable
+            Boolean weeklyPayApplicable,
+            Boolean fiveOrMoreEmployees
     ) {
         if (name != null) this.name = name;
         if (phone != null) this.phone = phone;
         if (address != null) this.address = address;
         if (weekStartDay != null) this.weekStartDay = weekStartDay;
         if (weeklyPayApplicable != null) this.weeklyPayApplicable = weeklyPayApplicable;
+        if (fiveOrMoreEmployees != null) this.fiveOrMoreEmployees = fiveOrMoreEmployees;
     }
 }

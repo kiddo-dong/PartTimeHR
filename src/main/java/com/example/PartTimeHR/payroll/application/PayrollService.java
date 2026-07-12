@@ -7,6 +7,8 @@ import com.example.PartTimeHR.payroll.presentation.dto.EmployeePayrollDetailResp
 import com.example.PartTimeHR.payroll.presentation.dto.EmployeePayrollResponse;
 import com.example.PartTimeHR.payroll.presentation.dto.PayrollRecordResponse;
 import com.example.PartTimeHR.payroll.presentation.dto.PayrollSummaryResponse;
+import com.example.PartTimeHR.schedule.domain.Schedule;
+import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
 import com.example.PartTimeHR.store.application.StoreAccessService;
 import com.example.PartTimeHR.store.domain.Store;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
@@ -30,6 +32,7 @@ public class PayrollService {
     private final StoreAccessService storeAccessService;
     private final EmployeeAccessService employeeAccessService;
     private final WorkRecordRepository workRecordRepository;
+    private final ScheduleRepository scheduleRepository;
 
     // 매장 전체 급여 요약 (사장)
     public PayrollSummaryResponse getStorePayroll(Long employerId, Long storeId, LocalDate from, LocalDate to) {
@@ -49,6 +52,14 @@ public class PayrollService {
                     .add(record);
         }
 
+        // 개근 판정용 스케줄 (직원별)
+        Map<Long, List<Schedule>> schedulesByEmployee = new HashMap<>();
+        for (Schedule schedule : scheduleRepository.findByStoreAndWorkDateBetween(store, from, to)) {
+            schedulesByEmployee
+                    .computeIfAbsent(schedule.getEmployee().getId(), key -> new ArrayList<>())
+                    .add(schedule);
+        }
+
         List<EmployeePayrollResponse> employees = new ArrayList<>();
         long totalPay = 0;
 
@@ -57,8 +68,10 @@ public class PayrollService {
 
             PayrollCalculator.Result result = PayrollCalculator.calculate(
                     employeeRecords,
+                    schedulesByEmployee.getOrDefault(employee.getId(), List.of()),
                     store.getWeekStartDay(),
-                    store.getWeeklyPayApplicable()
+                    store.getWeeklyPayApplicable(),
+                    store.getFiveOrMoreEmployees()
             );
 
             totalPay += result.totalPay();
@@ -70,6 +83,8 @@ public class PayrollService {
                     .totalNetMinutes(result.totalNetMinutes())
                     .basePay(result.basePay())
                     .weeklyAllowance(result.weeklyAllowance())
+                    .overtimeAllowance(result.overtimeAllowance())
+                    .nightAllowance(result.nightAllowance())
                     .totalPay(result.totalPay())
                     .build());
         }
@@ -112,10 +127,15 @@ public class PayrollService {
                 workRecordRepository.findAllByEmployeeAndWorkDateBetween(employee, from, to)
         );
 
+        List<Schedule> schedules = scheduleRepository
+                .findByEmployeeAndWorkDateBetween(employee, from, to);
+
         PayrollCalculator.Result result = PayrollCalculator.calculate(
                 records,
+                schedules,
                 store.getWeekStartDay(),
-                store.getWeeklyPayApplicable()
+                store.getWeeklyPayApplicable(),
+                store.getFiveOrMoreEmployees()
         );
 
         List<PayrollRecordResponse> recordResponses = records.stream()
@@ -139,6 +159,8 @@ public class PayrollService {
                 .totalNetMinutes(result.totalNetMinutes())
                 .basePay(result.basePay())
                 .weeklyAllowance(result.weeklyAllowance())
+                .overtimeAllowance(result.overtimeAllowance())
+                .nightAllowance(result.nightAllowance())
                 .totalPay(result.totalPay())
                 .records(recordResponses)
                 .build();

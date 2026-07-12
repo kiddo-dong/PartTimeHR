@@ -55,4 +55,7 @@ public class EmployerSignupRequest {
 
     @NotNull
     private Boolean weeklyPayApplicable;
+
+    // 상시 5인 이상 여부 (연장/야간 가산 적용) - 생략 시 false
+    private Boolean fiveOrMoreEmployees;
 }

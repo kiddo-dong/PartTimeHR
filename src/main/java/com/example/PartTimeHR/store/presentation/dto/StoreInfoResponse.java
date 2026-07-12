@@ -14,5 +14,6 @@ public class StoreInfoResponse {
     private String storeAddress;
     private Integer weekStartDay;
     private Boolean weeklyPayApplicable;
+    private Boolean fiveOrMoreEmployees;
     private LocalDateTime createdAt;
 }

@@ -71,6 +71,7 @@ public class EmployerAuthService {
                 .address(request.getStoreAddress())
                 .weekStartDay(request.getWeekStartDay())
                 .weeklyPayApplicable(request.getWeeklyPayApplicable())
+                .fiveOrMoreEmployees(Boolean.TRUE.equals(request.getFiveOrMoreEmployees()))
                 .employer(employer)
                 .build();
         storeRepository.save(store);

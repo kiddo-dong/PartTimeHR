@@ -13,5 +13,7 @@ public class EmployeePayrollResponse {
     private int totalNetMinutes;      // 실근무 합계 (분)
     private long basePay;             // 기본급
     private long weeklyAllowance;     // 주휴수당
+    private long overtimeAllowance;   // 연장근로 가산 (5인 이상 사업장)
+    private long nightAllowance;      // 야간근로 가산 (5인 이상 사업장)
     private long totalPay;            // 합계
 }

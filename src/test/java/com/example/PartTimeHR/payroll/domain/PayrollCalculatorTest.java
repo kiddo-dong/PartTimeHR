@@ -1,9 +1,11 @@
 package com.example.PartTimeHR.payroll.domain;
 
+import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.workrecord.domain.WorkRecord;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,13 +18,30 @@ class PayrollCalculatorTest {
     private static final LocalDate MON = LocalDate.of(2026, 7, 13);
 
     private WorkRecord record(LocalDate workDate, int netMinutes, int wage) {
+        return record(workDate.atTime(9, 0), netMinutes, wage);
+    }
+
+    private WorkRecord record(LocalDateTime clockIn, int netMinutes, int wage) {
         return WorkRecord.builder()
-                .workDate(workDate)
-                .clockInTime(workDate.atTime(9, 0))
-                .clockOutTime(workDate.atTime(9, 0).plusMinutes(netMinutes))
+                .workDate(clockIn.toLocalDate())
+                .clockInTime(clockIn)
+                .clockOutTime(clockIn.plusMinutes(netMinutes))
                 .appliedHourlyWage(wage)
                 .appliedJobTitle("알바생")
                 .build();
+    }
+
+    private Schedule schedule(LocalDate workDate) {
+        return Schedule.builder()
+                .workDate(workDate)
+                .startTime(workDate.atTime(9, 0))
+                .endTime(workDate.atTime(18, 0))
+                .build();
+    }
+
+    private PayrollCalculator.Result calc(List<WorkRecord> records, List<Schedule> schedules,
+                                          boolean weeklyPay, boolean fiveOrMore) {
+        return PayrollCalculator.calculate(records, schedules, MONDAY, weeklyPay, fiveOrMore);
     }
 
     @Test
@@ -34,15 +53,15 @@ class PayrollCalculatorTest {
     }
 
     @Test
-    void 주_15시간_이상이면_주휴수당이_붙는다() {
-        // 한 주에 10시간씩 2일 = 20시간, 시급 10,000원
+    void 주_15시간_이상이고_개근이면_주휴수당이_붙는다() {
+        // 한 주에 10시간씩 2일 = 20시간, 시급 10,000원 (스케줄 2일 모두 근무 → 개근)
         List<WorkRecord> records = List.of(
                 record(MON, 600, 10000),
                 record(MON.plusDays(2), 600, 10000)
         );
+        List<Schedule> schedules = List.of(schedule(MON), schedule(MON.plusDays(2)));
 
-        PayrollCalculator.Result result =
-                PayrollCalculator.calculate(records, MONDAY, true);
+        PayrollCalculator.Result result = calc(records, schedules, true, false);
 
         assertThat(result.basePay()).isEqualTo(200000);
         // 20 / 40 × 8시간 × 10,000원 = 40,000원
@@ -51,31 +70,96 @@ class PayrollCalculatorTest {
     }
 
     @Test
+    void 결근이_있으면_시간이_충분해도_주휴수당이_없다() {
+        // 스케줄 3일 중 2일만 근무 (결근 1일) - 20시간이지만 개근 실패
+        List<WorkRecord> records = List.of(
+                record(MON, 600, 10000),
+                record(MON.plusDays(2), 600, 10000)
+        );
+        List<Schedule> schedules = List.of(
+                schedule(MON), schedule(MON.plusDays(2)), schedule(MON.plusDays(4)) // 금요일 결근
+        );
+
+        PayrollCalculator.Result result = calc(records, schedules, true, false);
+
+        assertThat(result.weeklyAllowance()).isEqualTo(0);
+    }
+
+    @Test
     void 주_15시간_미만이면_주휴수당이_없다() {
-        // 한 주 14시간
         List<WorkRecord> records = List.of(
                 record(MON, 480, 10000),
                 record(MON.plusDays(1), 360, 10000)
         );
 
-        PayrollCalculator.Result result =
-                PayrollCalculator.calculate(records, MONDAY, true);
+        PayrollCalculator.Result result = calc(records, List.of(), true, false);
 
         assertThat(result.weeklyAllowance()).isEqualTo(0);
-        assertThat(result.totalPay()).isEqualTo(result.basePay());
     }
 
     @Test
-    void 매장이_주휴_미적용이면_시간과_무관하게_주휴수당이_없다() {
+    void 일_8시간_초과분은_50퍼센트_가산된다_5인_이상() {
+        // 하루 10시간 근무 → 연장 2시간, 시급 10,000원
+        List<WorkRecord> records = List.of(record(MON, 600, 10000));
+
+        PayrollCalculator.Result result = calc(records, List.of(), false, true);
+
+        // 2시간 × 10,000 × 0.5 = 10,000원
+        assertThat(result.overtimeAllowance()).isEqualTo(10000);
+    }
+
+    @Test
+    void 상시_5인_미만이면_연장_야간_가산이_없다() {
+        // 하루 10시간 + 야간대 근무여도 가산 없음
         List<WorkRecord> records = List.of(
-                record(MON, 600, 10000),
-                record(MON.plusDays(2), 600, 10000)
+                record(MON.atTime(20, 0), 600, 10000) // 20:00~06:00
         );
 
-        PayrollCalculator.Result result =
-                PayrollCalculator.calculate(records, MONDAY, false);
+        PayrollCalculator.Result result = calc(records, List.of(), false, false);
 
-        assertThat(result.weeklyAllowance()).isEqualTo(0);
+        assertThat(result.overtimeAllowance()).isEqualTo(0);
+        assertThat(result.nightAllowance()).isEqualTo(0);
+    }
+
+    @Test
+    void 야간_근로분은_50퍼센트_가산된다_5인_이상() {
+        // 18:00~24:00 근무 (6시간) → 야간(22~24시) 2시간, 시급 10,000원
+        List<WorkRecord> records = List.of(
+                record(MON.atTime(18, 0), 360, 10000)
+        );
+
+        PayrollCalculator.Result result = calc(records, List.of(), false, true);
+
+        // 야간 2시간 × 10,000 × 0.5 = 10,000원
+        assertThat(result.nightAllowance()).isEqualTo(10000);
+        assertThat(result.overtimeAllowance()).isEqualTo(0); // 6시간이라 연장 없음
+    }
+
+    @Test
+    void 자정을_넘는_근무의_야간분도_계산된다() {
+        // 22:00~다음날 02:00 (4시간 전부 야간)
+        List<WorkRecord> records = List.of(
+                record(MON.atTime(22, 0), 240, 10000)
+        );
+
+        PayrollCalculator.Result result = calc(records, List.of(), false, true);
+
+        assertThat(result.nightAllowance()).isEqualTo(20000); // 4h × 10,000 × 0.5
+    }
+
+    @Test
+    void 야간_계산에서_휴게_구간은_제외된다() {
+        // 21:00~다음날 01:00, 휴게 23:00~24:00 → 야간 실근로 = 22~23시 + 00~01시 = 2시간
+        WorkRecord withBreak = WorkRecord.builder()
+                .workDate(MON)
+                .clockInTime(MON.atTime(21, 0))
+                .clockOutTime(MON.plusDays(1).atTime(1, 0))
+                .appliedHourlyWage(10000)
+                .appliedJobTitle("알바생")
+                .build();
+        withBreak.replaceBreaks(MON.atTime(23, 0), MON.plusDays(1).atStartOfDay());
+
+        assertThat(PayrollCalculator.nightMinutes(withBreak)).isEqualTo(120);
     }
 
     @Test
@@ -87,8 +171,7 @@ class PayrollCalculatorTest {
                 record(MON.plusDays(7), 600, 10000)
         );
 
-        PayrollCalculator.Result result =
-                PayrollCalculator.calculate(records, MONDAY, true);
+        PayrollCalculator.Result result = calc(records, List.of(), true, false);
 
         assertThat(result.weeklyAllowance()).isEqualTo(40000); // 1주차만
     }

@@ -43,6 +43,7 @@ public class StoreService {
                 .address(request.getStoreAddress())
                 .weekStartDay(request.getWeekStartDay())
                 .weeklyPayApplicable(request.getWeeklyPayApplicable())
+                .fiveOrMoreEmployees(Boolean.TRUE.equals(request.getFiveOrMoreEmployees()))
                 .employer(employer)
                 .build();
         storeRepository.save(store);
@@ -71,7 +72,8 @@ public class StoreService {
                 request.getStorePhone(),
                 request.getStoreAddress(),
                 request.getWeekStartDay(),
-                request.getWeeklyPayApplicable()
+                request.getWeeklyPayApplicable(),
+                request.getFiveOrMoreEmployees()
         );
 
         return storeMapper.toInfoResponse(store);

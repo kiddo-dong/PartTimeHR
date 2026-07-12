@@ -16,4 +16,8 @@ public class AppProperties {
     // 비밀번호 재설정 페이지의 기준 URL (프론트엔드)
     @Value("${app.frontend-url}")
     private String frontendUrl;
+
+    // 최저임금 (원/시간)
+    @Value("${payroll.minimum-wage}")
+    private int minimumWage;
 }

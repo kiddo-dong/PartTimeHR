@@ -20,4 +20,6 @@ public class StoreUpdateRequest {
     private Integer weekStartDay;
 
     private Boolean weeklyPayApplicable;
+
+    private Boolean fiveOrMoreEmployees;
 }

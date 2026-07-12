@@ -20,6 +20,8 @@ public class EmployeePayrollDetailResponse {
     private int totalNetMinutes;
     private long basePay;
     private long weeklyAllowance;
+    private long overtimeAllowance;   // 연장근로 가산 (5인 이상 사업장)
+    private long nightAllowance;      // 야간근로 가산 (5인 이상 사업장)
     private long totalPay;
 
     private List<PayrollRecordResponse> records;

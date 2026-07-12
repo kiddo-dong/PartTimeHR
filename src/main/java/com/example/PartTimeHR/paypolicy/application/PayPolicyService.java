@@ -1,6 +1,7 @@
 package com.example.PartTimeHR.paypolicy.application;
 
 import com.example.PartTimeHR.employee.domain.EmployeeRepository;
+import com.example.PartTimeHR.global.config.AppProperties;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicyNotFoundException;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicyRepository;
@@ -24,6 +25,16 @@ public class PayPolicyService {
     private final EmployeeRepository employeeRepository;
     private final StoreAccessService storeAccessService;
     private final PayPolicyMapper payPolicyMapper;
+    private final AppProperties appProperties;
+
+    // 최저임금(근로기준법·최저임금법) 미달 시급 차단
+    private void validateMinimumWage(Integer hourlyWage) {
+        if (hourlyWage != null && hourlyWage < appProperties.getMinimumWage()) {
+            throw new IllegalArgumentException(
+                    "시급은 최저임금(" + appProperties.getMinimumWage() + "원) 이상이어야 합니다."
+            );
+        }
+    }
 
     // 매장의 직급/시급 정책 목록 조회
     @Transactional(readOnly = true)
@@ -35,6 +46,8 @@ public class PayPolicyService {
 
     @Transactional
     public void createPayPolicy(Long storeId, Long employerId, CreatePayPolicyRequest request) {
+
+        validateMinimumWage(request.getHourlyWage());
 
         // 내 매장인지 확인 (매장 조회까지 함께 처리)
         Store store = storeAccessService.getMyStore(storeId, employerId);
@@ -62,6 +75,8 @@ public class PayPolicyService {
         if (!policy.getStore().getId().equals(store.getId())) {
             throw new StoreAccessDeniedException();
         }
+
+        validateMinimumWage(request.getHourlyWage());
 
         // MapStruct는 setter 없는 엔티티에 빈 메서드를 생성해 no-op이었음 → 도메인 메서드 사용
         policy.update(request.getJobTitle(), request.getHourlyWage());
