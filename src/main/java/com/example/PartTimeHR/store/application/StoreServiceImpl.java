@@ -78,15 +78,11 @@ public class StoreServiceImpl implements StoreService {
     }
 
 
-    // 매장 전체 조회
+    // 매장 전체 조회 (매장이 없으면 빈 리스트가 정상 응답)
     @Transactional(readOnly = true)
     @Override
     public List<StoreInfoResponse> getMyStores(Long employerId) {
         List<Store> stores = storeRepository.findAllByEmployerId(employerId);
-
-        if (stores.isEmpty()) {
-            throw new StoreNotFoundException();
-        }
 
         return storeMapper.toInfoResponseList(stores);
     }

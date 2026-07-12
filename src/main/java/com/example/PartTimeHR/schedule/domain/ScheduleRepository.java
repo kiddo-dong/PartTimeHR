@@ -1,25 +1,25 @@
 package com.example.PartTimeHR.schedule.domain;
 
-import  com.example.PartTimeHR.employee.domain.Employee;
-import com.example.PartTimeHR.schedule.domain.Schedule;
+import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.store.domain.Store;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
-    // 매장 + 날짜별 조회
+    // 매장 + 날짜별 조회 (응답 변환 시 employee.name을 읽으므로 함께 로딩)
+    @EntityGraph(attributePaths = "employee")
     List<Schedule> findByStoreAndWorkDate(Store store, LocalDate workDate);
 
     // 직원 중복 스케줄 방지
     boolean existsByEmployeeIdAndWorkDate(Long employeeId, LocalDate workDate);
 
+    // 근무 시간 겹침 검사 (같은 날짜에 시간대가 겹치는 스케줄 존재 여부)
     @Query("""
     select count(s) > 0
     from Schedule s
@@ -35,6 +35,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             LocalDateTime endTime
     );
 
+    @EntityGraph(attributePaths = "employee")
     List<Schedule> findByStoreAndWorkDateBetween(
             Store store,
             LocalDate startDate,
