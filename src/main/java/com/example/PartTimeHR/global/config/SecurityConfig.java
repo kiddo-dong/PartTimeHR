@@ -86,6 +86,8 @@ public class SecurityConfig {
                                 "/",
                                 "/health",
                                 "/api/login",
+                                "/api/refresh",
+                                "/api/logout",
                                 "/api/employers/signup",
                                 "/api/email/verify",
                                 "/api/email/resend",
