@@ -131,7 +131,8 @@ public class WorkRecordService {
                 .netWorkedMinutes(0)
                 .build();
 
-        // 퇴근 시간까지 함께 입력된 경우 집계를 확정
+        // 수동 입력된 휴게 쌍 → 누적 휴게 반영 후 집계 확정
+        record.applyBreakFromTimes();
         record.recalculateMinutes();
 
         workRecordRepository.save(record);
@@ -149,8 +150,14 @@ public class WorkRecordService {
         // 이 가게 소속 직원의 기록인지 검증
         storeAccessService.validateEmployeeInStore(store, record.getEmployee());
 
-        // MapStruct로 request 덮어쓰기
+        // MapStruct로 request 덮어쓰기 (부분 수정)
         workRecordMapper.updateFromRequest(request, record);
+
+        // 휴게 시간이 수정된 경우에만 누적 휴게를 입력된 쌍으로 덮어쓴다
+        // (다회 휴게가 누적된 기록에서 다른 필드만 고칠 때 누적값 보존)
+        if (request.getBreakStartTime() != null || request.getBreakEndTime() != null) {
+            record.applyBreakFromTimes();
+        }
 
         // 시간이 바뀌었으므로 집계 재계산
         record.recalculateMinutes();

@@ -99,30 +99,23 @@ public class WorkRecord {
         return clockOutTime == null;
     }
 
-    /** 휴게 시작 가능 여부 */
+    /**
+     * 휴게 시작 가능 여부.
+     * 근무 중이면 언제든 가능 — 휴게 시간은 totalBreakMinutes에 누적되므로
+     * 하루에 여러 번 쉴 수 있다. (breakStartTime/breakEndTime은 마지막 휴게의 시각)
+     */
     public boolean canStartBreak() {
-        return status == WorkStatus.IN_PROGRESS
-                && breakStartTime == null;
-        // breakEndTime은 당연히 null
+        return status == WorkStatus.IN_PROGRESS;
     }
 
     /** 휴게 종료 가능 여부 */
     public boolean canEndBreak() {
-        return status == WorkStatus.ON_BREAK
-                && breakStartTime != null
-                && breakEndTime == null;
+        return status == WorkStatus.ON_BREAK;
     }
 
-    /** 퇴근 가능 여부 */
+    /** 퇴근 가능 여부 (휴게 중이면 종료 후 퇴근) */
     public boolean canClockOut() {
-        // 휴게가 없으면 바로 퇴근 가능
-        if (breakStartTime == null) {
-            return status == WorkStatus.IN_PROGRESS;
-        }
-
-        // 휴게가 있다면 반드시 종료 후 퇴근
-        return status == WorkStatus.IN_PROGRESS
-                && breakEndTime != null;
+        return status == WorkStatus.IN_PROGRESS;
     }
 
     /* ======================
@@ -138,12 +131,13 @@ public class WorkRecord {
         this.status = WorkStatus.ON_BREAK;
     }
 
-    /** 휴게 종료 */
+    /** 휴게 종료 — 이번 휴게 시간을 누적하고 근무 상태로 복귀 */
     public void endBreak() {
         if (!canEndBreak()) {
             throw new IllegalStateException("휴게를 종료할 수 없는 상태입니다.");
         }
         this.breakEndTime = LocalDateTime.now();
+        this.totalBreakMinutes += (int) Duration.between(breakStartTime, breakEndTime).toMinutes();
         this.status = WorkStatus.IN_PROGRESS;
     }
 
@@ -159,12 +153,20 @@ public class WorkRecord {
     }
 
     /**
-     * 근무 시간 집계를 확정한다.
+     * 수동 입력된 휴게 시작/종료 쌍으로 누적 휴게 시간을 덮어쓴다.
+     * 관리자가 근무 기록을 직접 생성/수정할 때만 사용.
+     */
+    public void applyBreakFromTimes() {
+        if (breakStartTime != null && breakEndTime != null) {
+            this.totalBreakMinutes = (int) Duration.between(breakStartTime, breakEndTime).toMinutes();
+        }
+    }
+
+    /**
+     * 근무 시간 집계를 확정한다. (totalBreakMinutes는 이미 누적된 값을 사용)
      * 퇴근 시점과, 고용주가 기록을 수동으로 수정한 시점에 호출한다.
      */
     public void recalculateMinutes() {
-        this.totalBreakMinutes = getBreakMinutes().intValue();
-
         Long total = getTotalWorkMinutes();
         this.totalWorkedMinutes = total == null ? 0 : total.intValue();
 
@@ -180,11 +182,9 @@ public class WorkRecord {
         return Duration.between(clockInTime, clockOutTime).toMinutes();
     }
 
+    /** 누적 휴게 시간 (분) */
     public Long getBreakMinutes() {
-        if (breakStartTime == null || breakEndTime == null) {
-            return 0L;
-        }
-        return Duration.between(breakStartTime, breakEndTime).toMinutes();
+        return (long) totalBreakMinutes;
     }
 
     public Long getActualWorkMinutes() {
