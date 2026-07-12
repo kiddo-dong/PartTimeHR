@@ -6,6 +6,7 @@ import com.example.PartTimeHR.mail.domain.PasswordResetToken;
 import com.example.PartTimeHR.mail.domain.EmailVerificationRepository;
 import com.example.PartTimeHR.mail.application.MailCooldownGuard;
 import com.example.PartTimeHR.mail.application.MailService;
+import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
 import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
@@ -35,6 +36,7 @@ public class EmployerAuthService {
     private final StoreRepository storeRepository;
     private final AppProperties appProperties;
     private final MailCooldownGuard mailCooldownGuard;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     // signup logic
     // 회원가입
@@ -138,6 +140,9 @@ public class EmployerAuthService {
 
         // 재사용 방지 (1회용 토큰)
         passwordResetTokenRepository.delete(resetToken);
+
+        // 비밀번호가 바뀌면 기존 세션(refresh 토큰) 폐기
+        refreshTokenRepository.deleteByEmail(employer.getEmail());
     }
 
     private PasswordResetToken findValidToken(String token) {

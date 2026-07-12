@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.employee.application;
 
+import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.presentation.dto.CreateEmployeeRequest;
 import com.example.PartTimeHR.employee.presentation.dto.EmployeeInfoResponse;
@@ -31,6 +32,7 @@ public class EmployeeService {
     private final PayPolicyRepository payPolicyRepository;
     private final ScheduleRepository scheduleRepository;
     private final WorkRecordRepository workRecordRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final EmployeeMapper employeeMapper;
     private final PasswordEncoder passwordEncoder;
     private final StoreAccessService storeAccessService;
@@ -108,6 +110,9 @@ public class EmployeeService {
             employee.changePassword(
                     passwordEncoder.encode(request.getPassword())
             );
+
+            // 비밀번호가 바뀌면 기존 세션(refresh 토큰) 폐기
+            refreshTokenRepository.deleteByEmail(employee.getEmail());
         }
 
         /* ===== 기본 정보 변경 ===== */
@@ -144,6 +149,11 @@ public class EmployeeService {
         // FK 참조 데이터 정리 후 삭제
         scheduleRepository.deleteAllByEmployee(employee);
         workRecordRepository.deleteAllByEmployee(employee);
+
+        // refresh 토큰 폐기 - 안 지우면 같은 이메일로 새 직원 등록 시
+        // 삭제된 직원의 토큰으로 새 계정의 access 토큰을 발급받을 수 있다
+        refreshTokenRepository.deleteByEmail(employee.getEmail());
+
         employeeRepository.delete(employee);
     }
 

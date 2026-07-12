@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.employer.application;
 
+import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.EmployerNotFoundException;
 import com.example.PartTimeHR.employer.domain.EmployerRepository;
@@ -16,6 +17,7 @@ public class EmployerService {
     private final EmployerRepository employerRepository;
     private final EmployerMapper employerMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     // 본인 조회(Employer)
     @Transactional(readOnly = true)
@@ -40,6 +42,9 @@ public class EmployerService {
             }
             // 반드시 암호화 후 저장
             employer.changePassword(passwordEncoder.encode(request.getPassword()));
+
+            // 비밀번호가 바뀌면 기존 세션(refresh 토큰) 폐기
+            refreshTokenRepository.deleteByEmail(employer.getEmail());
         }
 
         employer.updateBasicInfo(request.getName(), request.getPhone());
