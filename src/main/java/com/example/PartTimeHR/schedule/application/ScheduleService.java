@@ -40,8 +40,9 @@ public class ScheduleService {
         Employee employee = employeeAccessService
                 .getEmployee(request.getEmployeeId(), store);
 
-        // 시간 검증
+        // 시간 검증 (workDate와 시작 시간 날짜 일치 포함)
         scheduleAccessService.validateWorkTime(
+                request.getWorkDate(),
                 request.getStartTime(),
                 request.getEndTime()
         );
@@ -90,8 +91,18 @@ public class ScheduleService {
 
         // 시간 검증 (야간 포함 OK)
         scheduleAccessService.validateWorkTime(
+                schedule.getWorkDate(),
                 request.getStartTime(),
                 request.getEndTime()
+        );
+
+        // 수정 결과가 다른 스케줄과 겹치지 않는지 검증 (자기 자신은 제외)
+        scheduleAccessService.validateNoOverlap(
+                employeeId,
+                schedule.getWorkDate(),
+                request.getStartTime(),
+                request.getEndTime(),
+                schedule.getId()
         );
 
         // 수정

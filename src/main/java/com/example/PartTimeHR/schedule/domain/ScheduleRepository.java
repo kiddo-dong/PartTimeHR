@@ -32,6 +32,24 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             LocalDateTime endTime
     );
 
+    // 수정용: 수정 대상 스케줄 자신은 겹침 검사에서 제외
+    @Query("""
+    select count(s) > 0
+    from Schedule s
+    where s.employee.id = :employeeId
+      and s.id <> :excludeScheduleId
+      and s.workDate = :workDate
+      and s.startTime < :endTime
+      and s.endTime > :startTime
+    """)
+    boolean existsOverlappingScheduleExcluding(
+            Long employeeId,
+            LocalDate workDate,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            Long excludeScheduleId
+    );
+
     @EntityGraph(attributePaths = "employee")
     List<Schedule> findByStoreAndWorkDateBetween(
             Store store,
