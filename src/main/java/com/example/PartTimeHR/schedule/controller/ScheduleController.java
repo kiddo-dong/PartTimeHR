@@ -80,7 +80,7 @@ public class ScheduleController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
         return scheduleService.findStoreSchedulesByPeriod(
-                userDetails.getId(), storeId, startDate, endDate
+                        userDetails.getId(), storeId, startDate, endDate
         );
     }
 

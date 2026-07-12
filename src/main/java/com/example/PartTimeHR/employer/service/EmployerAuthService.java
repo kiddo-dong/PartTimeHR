@@ -88,6 +88,7 @@ public class EmployerAuthService {
 
 
     // 비밀번호 찾기 요청
+    @Transactional
     public void requestPasswordReset(String email) {
         Employer employer = employerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일"));
@@ -108,24 +109,34 @@ public class EmployerAuthService {
 
 
     // 토큰 검증
+    @Transactional(readOnly = true)
     public Employer verifyPasswordResetToken(String token) {
-        PasswordResetToken t = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("잘못된 토큰"));
-
-        if (t.isExpired()) throw new IllegalArgumentException("만료된 토큰");
-
-        return t.getEmployer();
+        return findValidToken(token).getEmployer();
     }
 
     // 새 비밀번호 저장
+    @Transactional
     public void resetPassword(String token, String newPassword, String newPasswordConfirm) {
         if (!newPassword.equals(newPasswordConfirm)) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        Employer employer = verifyPasswordResetToken(token);
+        PasswordResetToken resetToken = findValidToken(token);
 
+        Employer employer = resetToken.getEmployer();
         employer.setPassword(passwordEncoder.encode(newPassword));
+
+        // 재사용 방지 (1회용 토큰)
+        passwordResetTokenRepository.delete(resetToken);
+    }
+
+    private PasswordResetToken findValidToken(String token) {
+        PasswordResetToken t = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("잘못된 토큰"));
+
+        if (t.isExpired()) throw new IllegalArgumentException("만료된 토큰");
+
+        return t;
     }
 
     // 계정 생성용 이메일 인증 템플릿
