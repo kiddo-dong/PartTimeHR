@@ -97,6 +97,44 @@ class WorkRecordTest {
     }
 
     @Test
+    void 퇴근이_출근보다_빠르면_검증에_실패한다() {
+        WorkRecord record = WorkRecord.builder()
+                .workDate(LocalDate.of(2026, 7, 13))
+                .clockInTime(LocalDateTime.of(2026, 7, 13, 18, 0))
+                .clockOutTime(LocalDateTime.of(2026, 7, 13, 9, 0)) // 출근보다 빠름
+                .appliedHourlyWage(10320)
+                .appliedJobTitle("알바생")
+                .status(WorkStatus.IN_PROGRESS)
+                .totalBreakMinutes(0)
+                .totalWorkedMinutes(0)
+                .netWorkedMinutes(0)
+                .build();
+
+        assertThatThrownBy(record::validateTimes)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("퇴근 시간");
+    }
+
+    @Test
+    void 시간으로부터_상태를_재도출한다() {
+        WorkRecord record = WorkRecord.builder()
+                .workDate(LocalDate.of(2026, 7, 13))
+                .clockInTime(LocalDateTime.of(2026, 7, 13, 9, 0))
+                .clockOutTime(LocalDateTime.of(2026, 7, 13, 18, 0))
+                .appliedHourlyWage(10320)
+                .appliedJobTitle("알바생")
+                .status(WorkStatus.IN_PROGRESS) // 퇴근 시간과 불일치한 상태
+                .totalBreakMinutes(0)
+                .totalWorkedMinutes(0)
+                .netWorkedMinutes(0)
+                .build();
+
+        record.refreshStatus();
+
+        assertThat(record.getStatus()).isEqualTo(WorkStatus.COMPLETED);
+    }
+
+    @Test
     void 퇴근_전에는_총_근무_시간이_확정되지_않는다() {
         WorkRecord record = inProgressRecord();
 

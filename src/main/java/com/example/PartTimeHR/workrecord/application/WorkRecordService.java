@@ -159,8 +159,6 @@ public class WorkRecordService {
             throw new IllegalStateException("이미 진행 중인 근무가 존재합니다.");
         }
 
-        WorkStatus status = resolveStatus(request);
-
         WorkRecord record = WorkRecord.builder()
                 .employee(employee)
                 .workDate(request.getWorkDate())
@@ -170,14 +168,16 @@ public class WorkRecordService {
                 .clockOutTime(request.getClockOutTime())
                 .appliedHourlyWage(employee.getPayPolicy().getHourlyWage())
                 .appliedJobTitle(employee.getPayPolicy().getJobTitle())
-                .status(status)
+                .status(WorkStatus.IN_PROGRESS)
                 .memo(request.getMemo())
                 .totalBreakMinutes(0)
                 .totalWorkedMinutes(0)
                 .netWorkedMinutes(0)
                 .build();
 
-        // 수동 입력된 휴게 쌍 → 누적 휴게 반영 후 집계 확정
+        // 시간 순서 검증 → 상태 도출 → 누적 휴게 반영 → 집계 확정
+        record.validateTimes();
+        record.refreshStatus();
         record.applyBreakFromTimes();
         record.recalculateMinutes();
 
@@ -198,6 +198,10 @@ public class WorkRecordService {
 
         // MapStruct로 request 덮어쓰기 (부분 수정)
         workRecordMapper.updateFromRequest(request, record);
+
+        // 수정 결과의 시간 순서 검증 + 상태 재도출
+        record.validateTimes();
+        record.refreshStatus();
 
         // 휴게 시간이 수정된 경우에만 누적 휴게를 입력된 쌍으로 덮어쓴다
         // (다회 휴게가 누적된 기록에서 다른 필드만 고칠 때 누적값 보존)
@@ -234,20 +238,6 @@ public class WorkRecordService {
                 .orElseThrow(() ->
                         new IllegalStateException("진행 중인 근무 기록이 없습니다.")
                 );
-    }
-
-    private WorkStatus resolveStatus(CreateWorkRecordRequest request) {
-
-        if (request.getClockOutTime() != null) {
-            return WorkStatus.COMPLETED;
-        }
-
-        if (request.getBreakStartTime() != null &&
-                request.getBreakEndTime() == null) {
-            return WorkStatus.ON_BREAK;
-        }
-
-        return WorkStatus.IN_PROGRESS;
     }
 
     // 삭제

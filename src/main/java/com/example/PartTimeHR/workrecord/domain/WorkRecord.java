@@ -153,6 +153,39 @@ public class WorkRecord {
     }
 
     /**
+     * 시간 필드 간의 순서 검증. 수동 생성/수정 시 호출.
+     * (검증 없이는 퇴근 < 출근 같은 입력으로 음수 근무 시간이 저장될 수 있다)
+     */
+    public void validateTimes() {
+        if (clockOutTime != null && !clockInTime.isBefore(clockOutTime)) {
+            throw new IllegalArgumentException("퇴근 시간은 출근 시간 이후여야 합니다.");
+        }
+        if (breakStartTime != null && breakStartTime.isBefore(clockInTime)) {
+            throw new IllegalArgumentException("휴게는 출근 이후에 시작해야 합니다.");
+        }
+        if (breakStartTime != null && breakEndTime != null && breakEndTime.isBefore(breakStartTime)) {
+            throw new IllegalArgumentException("휴게 종료는 휴게 시작 이후여야 합니다.");
+        }
+        if (clockOutTime != null && breakEndTime != null && breakEndTime.isAfter(clockOutTime)) {
+            throw new IllegalArgumentException("휴게는 퇴근 이전에 끝나야 합니다.");
+        }
+    }
+
+    /**
+     * 시간 필드로부터 상태를 다시 도출한다. 수동 생성/수정 시 호출.
+     * (수정으로 퇴근 시간을 넣었는데 status가 IN_PROGRESS로 남는 불일치 방지)
+     */
+    public void refreshStatus() {
+        if (clockOutTime != null) {
+            this.status = WorkStatus.COMPLETED;
+        } else if (breakStartTime != null && breakEndTime == null) {
+            this.status = WorkStatus.ON_BREAK;
+        } else {
+            this.status = WorkStatus.IN_PROGRESS;
+        }
+    }
+
+    /**
      * 수동 입력된 휴게 시작/종료 쌍으로 누적 휴게 시간을 덮어쓴다.
      * 관리자가 근무 기록을 직접 생성/수정할 때만 사용.
      */
