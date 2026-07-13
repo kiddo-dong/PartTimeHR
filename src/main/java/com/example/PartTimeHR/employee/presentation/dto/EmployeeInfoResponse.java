@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.employee.presentation.dto;
 
+import com.example.PartTimeHR.employee.domain.EmployeeStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -19,4 +20,5 @@ public class EmployeeInfoResponse {
     private int hourlyWage;
     private Integer weeklyRestDay;
     private LocalDate hiredAt;
+    private EmployeeStatus status;
 }

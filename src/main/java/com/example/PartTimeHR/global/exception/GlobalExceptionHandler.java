@@ -1,5 +1,6 @@
 package com.example.PartTimeHR.global.exception;
 
+import com.example.PartTimeHR.auth.domain.AccountInactiveException;
 import com.example.PartTimeHR.auth.domain.InvalidCredentialsException;
 import com.example.PartTimeHR.employee.domain.EmployeeAccessDeniedException;
 import com.example.PartTimeHR.employee.domain.EmployeeEmailDuplicatesException;
@@ -62,6 +63,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EmailNotVerifiedException.class)
     public ResponseEntity<ErrorResponse> handleEmailNotVerified(EmailNotVerifiedException ex) {
         return buildError(HttpStatus.FORBIDDEN, "EMAIL_NOT_VERIFIED", ex.getMessage());
+    }
+
+    // 매장 초대코드로 가입했지만 사장 승인 전인 계정의 로그인
+    @ExceptionHandler(AccountInactiveException.class)
+    public ResponseEntity<ErrorResponse> handleAccountInactive(AccountInactiveException ex) {
+        return buildError(HttpStatus.FORBIDDEN, "ACCOUNT_INACTIVE", ex.getMessage());
     }
 
     // @PreAuthorize 실패 (권한 없는 역할의 접근)

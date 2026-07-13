@@ -22,4 +22,11 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     // 매장 삭제 전 소속 직원 존재 확인
     boolean existsByStoreId(Long storeId);
+
+    // 매장 초대코드로 가입해 승인 대기 중인 직원 목록 (이메일 표시를 위해 user 함께 로딩)
+    @EntityGraph(attributePaths = "user")
+    List<Employee> findByStoreIdAndStatus(Long storeId, EmployeeStatus status);
+
+    // 승인/거절 시 매장 소속 검증까지 함께
+    Optional<Employee> findByIdAndStoreIdAndStatus(Long id, Long storeId, EmployeeStatus status);
 }

@@ -4,6 +4,7 @@ import com.example.PartTimeHR.auth.domain.User;
 import com.example.PartTimeHR.auth.domain.UserRepository;
 import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
 import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.employee.domain.EmployeeStatus;
 import com.example.PartTimeHR.employee.presentation.dto.CreateEmployeeRequest;
 import com.example.PartTimeHR.employee.presentation.dto.EmployeeInfoResponse;
 import com.example.PartTimeHR.employee.presentation.dto.UpdateEmployeeRequest;
@@ -67,11 +68,12 @@ public class EmployeeService {
         }
 
         // User 생성 - Employee보다 먼저 저장해야 PK가 생성돼 공유할 수 있다
-        // 직원은 사장이 등록해주므로 이메일 인증 절차가 없다 (emailVerified=true)
+        // 사장이 직접 등록하는 경로라 즉시 신뢰 - 이메일 인증도, 승인 대기도 없다
         User user = User.create(
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 Role.ROLE_EMPLOYEE,
+                true,
                 true
         );
         userRepository.save(user);
@@ -83,6 +85,7 @@ public class EmployeeService {
                 .phone(request.getPhone())
                 .store(store)
                 .payPolicy(policy)
+                .status(EmployeeStatus.ACTIVE)
                 .weeklyRestDay(request.getWeeklyRestDay())
                 .hiredAt(request.getHiredAt() != null ? request.getHiredAt() : LocalDate.now())
                 .build();

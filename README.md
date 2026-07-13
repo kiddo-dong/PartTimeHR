@@ -137,7 +137,9 @@ PartTimeHR/
 - 매장별 시급 정책(직급/시급) 생성/조회/수정/삭제
 
 #### 직원 관리
-- 직원 등록 (직원은 자가 가입 불가, 시급 정책 지정 또는 기본 정책)
+- 직원 등록 (사장 직접 등록 - 시급 정책 지정 또는 기본 정책 - 즉시 로그인 가능)
+- **매장 초대코드**: 코드 발급/재발급(만료 없음), 코드로 가입한 직원(PENDING) 목록 조회, 승인/거절
+  - 승인 시 로그인 활성화 + 승인 시점이 입사일로 확정, 거절 시 계정 자체를 삭제(이메일 재사용 가능)
 - 직원 조회(전체/단일)/수정/삭제
 
 #### 스케줄 관리
@@ -210,8 +212,16 @@ Employer.id/Employee.id라서 Store/Schedule/WorkRecord 등의 소유권 검증 
 ### Employee (직원)
 ```
 - id(=user.id), user(1:1 → User)
-- name, phone, store(N:1), payPolicy(N:1), weeklyRestDay, hiredAt, createdAt/updatedAt
+- name, phone, store(N:1), payPolicy(N:1), status(PENDING/ACTIVE), weeklyRestDay, hiredAt, createdAt/updatedAt
 ```
+매장 초대코드로 가입하면 PENDING(로그인 불가, User.active=false)으로 생성되고,
+사장 승인 시 ACTIVE + User.active=true + hiredAt=승인일로 확정된다.
+
+### StoreInviteCode (매장 초대코드)
+```
+- id, store(1:1, unique), code(unique), createdAt
+```
+매장당 코드 1개, 만료 없음. 사장이 재발급하면 기존 코드는 즉시 무효화된다.
 
 ### PayPolicy (직급/시급 정책)
 ```
@@ -251,6 +261,7 @@ WorkBreak:  id, workRecord(N:1), startTime/endTime(null=진행 중)
 | POST | `/api/refresh` | access 토큰 재발급 |
 | POST | `/api/logout` | refresh 토큰 폐기 |
 | POST | `/api/employers/signup` | 사장 회원가입 |
+| POST | `/api/join` | 매장 초대코드로 직원 가입 (승인 대기 상태로 생성) |
 | GET | `/api/email/verify?token=` | 이메일 인증 |
 | POST | `/api/email/resend?email=` | 인증 메일 재발송 (60초 쿨다운) |
 | POST | `/api/employers/password/reset-request` | 비밀번호 재설정 메일 |
@@ -280,6 +291,11 @@ WorkBreak:  id, workRecord(N:1), startTime/endTime(null=진행 중)
 | GET | `/api/stores/{storeId}/attendance/summary?from=&to=` | 기간 근태 요약 (출근율) |
 | GET | `/api/stores/{storeId}/payroll?from=&to=` | 매장 전체 급여 요약 |
 | GET | `/api/stores/{storeId}/payroll/employees/{id}?from=&to=` | 직원별 급여 상세 (기록별 내역) |
+| GET | `/api/stores/{storeId}/invite/code` | 초대코드 조회 (없으면 발급) |
+| POST | `/api/stores/{storeId}/invite/code/regenerate` | 코드 재발급 (기존 코드 무효화) |
+| GET | `/api/stores/{storeId}/invite/pending` | 초대코드로 가입한 승인 대기 직원 목록 |
+| POST | `/api/stores/{storeId}/invite/pending/{id}/approve` | 가입 승인 |
+| POST | `/api/stores/{storeId}/invite/pending/{id}/reject` | 가입 거절 (계정 삭제) |
 
 ### 직원 (ROLE_EMPLOYEE)
 

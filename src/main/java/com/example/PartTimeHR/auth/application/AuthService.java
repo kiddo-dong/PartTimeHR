@@ -6,6 +6,7 @@ import com.example.PartTimeHR.auth.domain.RefreshToken;
 import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
 import com.example.PartTimeHR.auth.presentation.dto.LoginRequest;
 import com.example.PartTimeHR.auth.presentation.dto.LoginResponse;
+import com.example.PartTimeHR.auth.domain.AccountInactiveException;
 import com.example.PartTimeHR.auth.domain.InvalidCredentialsException;
 import com.example.PartTimeHR.mail.domain.EmailNotVerifiedException;
 import com.example.PartTimeHR.security.jwt.JwtProvider;
@@ -35,6 +36,10 @@ public class AuthService {
 
         if (!user.isEmailVerified()) {
             throw new EmailNotVerifiedException();
+        }
+
+        if (!user.isActive()) {
+            throw new AccountInactiveException();
         }
 
         String accessToken = createAccessToken(user);
@@ -67,6 +72,10 @@ public class AuthService {
 
         if (!user.isEmailVerified()) {
             throw new EmailNotVerifiedException();
+        }
+
+        if (!user.isActive()) {
+            throw new AccountInactiveException();
         }
 
         return new LoginResponse(createAccessToken(user), refreshToken.getToken());

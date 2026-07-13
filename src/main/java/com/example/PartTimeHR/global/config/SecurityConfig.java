@@ -89,6 +89,7 @@ public class SecurityConfig {
                                 "/api/refresh",
                                 "/api/logout",
                                 "/api/employers/signup",
+                                "/api/join",
                                 "/api/email/verify",
                                 "/api/email/resend",
                                 "/api/employers/password/reset-request",

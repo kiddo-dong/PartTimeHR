@@ -46,6 +46,11 @@ public class Employee {
     @JoinColumn(name = "pay_policy_id", nullable = false)
     private PayPolicy payPolicy;
 
+    // 매장 초대코드로 가입하면 PENDING(승인 대기), 사장이 직접 등록하면 즉시 ACTIVE
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private EmployeeStatus status;
+
     @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY)
     private List<Schedule> schedules = new ArrayList<>();
 
@@ -87,5 +92,14 @@ public class Employee {
 
     public void assignWeeklyRestDay(Integer weeklyRestDay) {
         this.weeklyRestDay = weeklyRestDay;
+    }
+
+    /** 매장 초대코드 가입 승인 - 사장 승인 시점을 입사일로 확정한다 */
+    public void approve(LocalDate hiredAt) {
+        if (status != EmployeeStatus.PENDING) {
+            throw new IllegalStateException("대기 중인 직원만 승인할 수 있습니다.");
+        }
+        this.status = EmployeeStatus.ACTIVE;
+        this.hiredAt = hiredAt;
     }
 }

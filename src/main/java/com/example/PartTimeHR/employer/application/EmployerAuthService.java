@@ -58,7 +58,8 @@ public class EmployerAuthService {
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 Role.ROLE_EMPLOYER,
-                false
+                false,
+                true
         );
         userRepository.save(user);
 
