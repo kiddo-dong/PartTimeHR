@@ -1,10 +1,12 @@
 package com.example.PartTimeHR.payroll.application;
 
 import com.example.PartTimeHR.employee.application.EmployeeAccessService;
+import com.example.PartTimeHR.global.config.AppProperties;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.payroll.domain.PayrollCalculator;
 import com.example.PartTimeHR.payroll.presentation.dto.EmployeePayrollDetailResponse;
 import com.example.PartTimeHR.payroll.presentation.dto.EmployeePayrollResponse;
+import com.example.PartTimeHR.payroll.presentation.dto.InsuranceDeductionResponse;
 import com.example.PartTimeHR.payroll.presentation.dto.PayrollRecordResponse;
 import com.example.PartTimeHR.payroll.presentation.dto.PayrollSummaryResponse;
 import com.example.PartTimeHR.payroll.presentation.dto.SeverancePayResponse;
@@ -35,6 +37,7 @@ public class PayrollService {
     private final EmployeeAccessService employeeAccessService;
     private final WorkRecordRepository workRecordRepository;
     private final ScheduleRepository scheduleRepository;
+    private final AppProperties appProperties;
 
     // 매장 전체 급여 요약 (사장)
     public PayrollSummaryResponse getStorePayroll(Long employerId, Long storeId, LocalDate from, LocalDate to) {
@@ -98,6 +101,7 @@ public class PayrollService {
                     .nightAllowance(result.nightAllowance())
                     .holidayAllowance(result.holidayAllowance())
                     .holidayLeavePay(result.holidayLeavePay())
+                    .annualLeavePay(result.annualLeavePay())
                     .totalPay(result.totalPay())
                     .build());
         }
@@ -177,8 +181,10 @@ public class PayrollService {
                 .nightAllowance(result.nightAllowance())
                 .holidayAllowance(result.holidayAllowance())
                 .holidayLeavePay(result.holidayLeavePay())
+                .annualLeavePay(result.annualLeavePay())
                 .totalPay(result.totalPay())
                 .records(recordResponses)
+                .deductions(estimateDeductions(result.totalPay()))
                 .build();
     }
 
@@ -267,6 +273,29 @@ public class PayrollService {
                 .eligible(true)
                 .averageDailyWage(averageDailyWage)
                 .estimatedAmount(estimated)
+                .build();
+    }
+
+    /**
+     * 4대보험 근로자 부담분 공제 추정.
+     * 가입 대상 판정(월 60시간 미만 제외 등)은 하지 않고 요율만 적용한 추정치.
+     * 소득세는 미포함.
+     */
+    private InsuranceDeductionResponse estimateDeductions(long totalPay) {
+        long nationalPension = Math.round(totalPay * appProperties.getNationalPensionRate());
+        long health = Math.round(totalPay * appProperties.getHealthRate());
+        long longTermCare = Math.round(health * appProperties.getLongTermCareRate());
+        long employment = Math.round(totalPay * appProperties.getEmploymentRate());
+
+        long total = nationalPension + health + longTermCare + employment;
+
+        return InsuranceDeductionResponse.builder()
+                .nationalPension(nationalPension)
+                .healthInsurance(health)
+                .longTermCare(longTermCare)
+                .employmentInsurance(employment)
+                .totalDeduction(total)
+                .estimatedNetPay(totalPay - total)
                 .build();
     }
 

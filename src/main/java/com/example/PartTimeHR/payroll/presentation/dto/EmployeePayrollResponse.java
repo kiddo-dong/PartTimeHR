@@ -17,5 +17,6 @@ public class EmployeePayrollResponse {
     private long nightAllowance;      // 야간근로 가산 (5인 이상 사업장)
     private long holidayAllowance;    // 휴일근로 가산 (공휴일·근로자의 날, 5인 이상)
     private long holidayLeavePay;     // 유급휴일수당 (휴일에 스케줄이 있으면 근무 여부 무관 지급)
+    private long annualLeavePay;      // 연차수당 (승인된 연차 사용일 유급)
     private long totalPay;            // 합계
 }

@@ -20,4 +20,19 @@ public class AppProperties {
     // 최저임금 (원/시간)
     @Value("${payroll.minimum-wage}")
     private int minimumWage;
+
+    /* 4대보험 근로자 부담 요율 (매년 갱신) */
+
+    @Value("${insurance.national-pension-rate}")
+    private double nationalPensionRate;
+
+    @Value("${insurance.health-rate}")
+    private double healthRate;
+
+    // 건강보험료에 곱하는 요율
+    @Value("${insurance.long-term-care-rate}")
+    private double longTermCareRate;
+
+    @Value("${insurance.employment-rate}")
+    private double employmentRate;
 }
