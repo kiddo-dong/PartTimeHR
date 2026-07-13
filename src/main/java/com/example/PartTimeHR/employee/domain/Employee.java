@@ -1,8 +1,6 @@
 package com.example.PartTimeHR.employee.domain;
 
-import com.example.PartTimeHR.auth.domain.AuthPrincipal;
-import com.example.PartTimeHR.employer.domain.Employer;
-import com.example.PartTimeHR.employer.domain.Role;
+import com.example.PartTimeHR.auth.domain.Account;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.store.domain.Store;
@@ -15,24 +13,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 // 직원
+// 인증 정보(email/password/role)는 Account가 갖고,
+// Employee는 Account와 PK를 공유한다(@MapsId) — Employee.id == Account.id
 @Entity
 @Table(name = "employee")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Employee implements AuthPrincipal {
+public class Employee {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 로그인 대비 (사장이 옆에서 입력)
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @Column(nullable = false)
-    private String password;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @MapsId
+    @JoinColumn(name = "id")
+    private Account account;
 
     @Column(nullable = false, length = 30)
     private String name;
@@ -51,10 +48,6 @@ public class Employee implements AuthPrincipal {
 
     @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY)
     private List<Schedule> schedules = new ArrayList<>();
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
 
     // 약정 주휴일 요일 (1=월 ~ 7=일, null이면 미지정)
     // 이 요일의 근무는 휴일근로 가산(5인 이상), 쉼은 결근이 아님
@@ -86,10 +79,6 @@ public class Employee implements AuthPrincipal {
         if (phone != null) {
             this.phone = phone;
         }
-    }
-
-    public void changePassword(String encodedPassword) {
-        this.password = encodedPassword;
     }
 
     public void changePayPolicy(PayPolicy policy) {

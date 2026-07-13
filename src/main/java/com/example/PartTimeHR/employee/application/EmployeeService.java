@@ -1,5 +1,7 @@
 package com.example.PartTimeHR.employee.application;
 
+import com.example.PartTimeHR.auth.domain.Account;
+import com.example.PartTimeHR.auth.domain.AccountRepository;
 import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.presentation.dto.CreateEmployeeRequest;
@@ -29,6 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmployeeService {
 
+    private final AccountRepository accountRepository;
     private final EmployeeRepository employeeRepository;
     private final PayPolicyRepository payPolicyRepository;
     private final ScheduleRepository scheduleRepository;
@@ -54,9 +57,6 @@ public class EmployeeService {
             throw new PasswordMismatchException();
         }
 
-        // 비밀번호 암호화
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
-
         // PayPolicy 결정
         PayPolicy policy;
         if (request.getPayPolicyId() != null) {
@@ -66,15 +66,23 @@ public class EmployeeService {
                     .orElseThrow(PayPolicyNotFoundException::new);
         }
 
-        // Employee 생성
+        // Account 생성 - Employee보다 먼저 저장해야 PK가 생성돼 공유할 수 있다
+        // 직원은 사장이 등록해주므로 이메일 인증 절차가 없다 (emailVerified=true)
+        Account account = Account.create(
+                request.getEmail(),
+                passwordEncoder.encode(request.getPassword()),
+                Role.ROLE_EMPLOYEE,
+                true
+        );
+        accountRepository.save(account);
+
+        // Employee 생성 (Account와 PK 공유)
         Employee employee = Employee.builder()
-                .email(request.getEmail())
-                .password(encodedPassword)
+                .account(account)
                 .name(request.getName())
                 .phone(request.getPhone())
                 .store(store)
                 .payPolicy(policy)
-                .role(Role.ROLE_EMPLOYEE)
                 .weeklyRestDay(request.getWeeklyRestDay())
                 .hiredAt(request.getHiredAt() != null ? request.getHiredAt() : LocalDate.now())
                 .build();
@@ -110,12 +118,12 @@ public class EmployeeService {
                 throw new IllegalArgumentException("비밀번호 확인이 일치하지 않습니다.");
             }
 
-            employee.changePassword(
+            employee.getAccount().changePassword(
                     passwordEncoder.encode(request.getPassword())
             );
 
             // 비밀번호가 바뀌면 기존 세션(refresh 토큰) 폐기
-            refreshTokenRepository.deleteByEmail(employee.getEmail());
+            refreshTokenRepository.deleteByAccountId(employee.getId());
         }
 
         /* ===== 기본 정보 변경 ===== */
@@ -160,8 +168,9 @@ public class EmployeeService {
 
         // refresh 토큰 폐기 - 안 지우면 같은 이메일로 새 직원 등록 시
         // 삭제된 직원의 토큰으로 새 계정의 access 토큰을 발급받을 수 있다
-        refreshTokenRepository.deleteByEmail(employee.getEmail());
+        refreshTokenRepository.deleteByAccountId(employee.getId());
 
+        // Account는 cascade(REMOVE)로 함께 삭제된다
         employeeRepository.delete(employee);
     }
 

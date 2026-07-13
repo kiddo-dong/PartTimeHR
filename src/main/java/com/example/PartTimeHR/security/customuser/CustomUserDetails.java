@@ -1,7 +1,6 @@
 package com.example.PartTimeHR.security.customuser;
 
-import com.example.PartTimeHR.employee.domain.Employee;
-import com.example.PartTimeHR.employer.domain.Employer;
+import com.example.PartTimeHR.auth.domain.Account;
 import com.example.PartTimeHR.employer.domain.Role;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,18 +18,11 @@ public class CustomUserDetails implements UserDetails {
     private final Long id;
     private final String password;
 
-    public CustomUserDetails(Employer employer) {
-        this.id = employer.getId();
-        this.email = employer.getEmail();
-        this.role = employer.getRole();
-        this.password = employer.getPassword();
-    }
-
-    public CustomUserDetails(Employee employee) {
-        this.id = employee.getId();
-        this.email = employee.getEmail();
-        this.role = employee.getRole();
-        this.password = employee.getPassword();
+    public CustomUserDetails(Account account) {
+        this.id = account.getId();
+        this.email = account.getEmail();
+        this.role = account.getRole();
+        this.password = account.getPassword();
     }
 
     @Override

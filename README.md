@@ -47,10 +47,10 @@
 
 ```
 PartTimeHR/
-├── auth/               # 통합 로그인 (Employer/Employee 공용)
+├── auth/               # 인증 신원 (Employer/Employee 공용)
 │   ├── presentation/   # AuthController + dto
 │   ├── application/    # AuthService
-│   └── domain/         # AuthPrincipal, InvalidCredentialsException
+│   └── domain/         # Account, AccountRepository, RefreshToken, InvalidCredentialsException
 ├── employer/           # 사장님
 │   ├── presentation/   # EmployerController, EmployerAuthController + dto
 │   ├── application/    # EmployerService, EmployerAuthService, EmployerMapper
@@ -185,9 +185,17 @@ Database - MySQL 8.0
 
 ## 8. 주요 엔티티
 
+### Account (인증 신원)
+```
+- id, email(전역 unique), password(BCrypt), role, emailVerified, createdAt/updatedAt
+```
+Employer/Employee는 이 Account와 **PK를 공유**한다(`@MapsId`) — `Employer.id == Employee.id == Account.id`
+(둘 중 하나). 로그인/이메일 중복 검사가 이 테이블 하나로 통일되고, JWT의 `id` 클레임이 곧
+Employer.id/Employee.id라서 Store/Schedule/WorkRecord 등의 소유권 검증 로직은 그대로 재사용된다.
+
 ### Employer (사장님)
 ```
-- id, email(전역 unique), password(BCrypt), emailVerified, role
+- id(=account.id), account(1:1 → Account)
 - name, phone, stores(1:N), createdAt/updatedAt
 ```
 
@@ -201,8 +209,8 @@ Database - MySQL 8.0
 
 ### Employee (직원)
 ```
-- id, email(전역 unique), password(BCrypt), name, phone
-- store(N:1), payPolicy(N:1), role, createdAt/updatedAt
+- id(=account.id), account(1:1 → Account)
+- name, phone, store(N:1), payPolicy(N:1), weeklyRestDay, hiredAt, createdAt/updatedAt
 ```
 
 ### PayPolicy (직급/시급 정책)

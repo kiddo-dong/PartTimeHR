@@ -1,14 +1,13 @@
 package com.example.PartTimeHR.auth.application;
 
-import com.example.PartTimeHR.auth.domain.AuthPrincipal;
+import com.example.PartTimeHR.auth.domain.Account;
+import com.example.PartTimeHR.auth.domain.AccountRepository;
 import com.example.PartTimeHR.auth.domain.RefreshToken;
 import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
 import com.example.PartTimeHR.auth.presentation.dto.LoginRequest;
 import com.example.PartTimeHR.auth.presentation.dto.LoginResponse;
 import com.example.PartTimeHR.auth.domain.InvalidCredentialsException;
 import com.example.PartTimeHR.mail.domain.EmailNotVerifiedException;
-import com.example.PartTimeHR.employee.domain.EmployeeRepository;
-import com.example.PartTimeHR.employer.domain.EmployerRepository;
 import com.example.PartTimeHR.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,30 +19,30 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AuthService {
 
-    private final EmployerRepository employerRepository;
-    private final EmployeeRepository employeeRepository;
+    private final AccountRepository accountRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
     public LoginResponse login(LoginRequest request) {
 
-        AuthPrincipal user = findByEmail(request.getEmail());
+        Account account = accountRepository.findByEmail(request.getEmail())
+                .orElseThrow(InvalidCredentialsException::new);
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             throw new InvalidCredentialsException();
         }
 
-        if (!user.isEmailVerified()) {
+        if (!account.isEmailVerified()) {
             throw new EmailNotVerifiedException();
         }
 
-        String accessToken = createAccessToken(user);
+        String accessToken = createAccessToken(account);
 
         // 재로그인 시 기존 토큰 폐기 (계정당 refresh 토큰 1개)
-        refreshTokenRepository.deleteByEmail(user.getEmail());
+        refreshTokenRepository.deleteByAccountId(account.getId());
 
-        RefreshToken refreshToken = RefreshToken.create(user.getEmail(), user.getRole());
+        RefreshToken refreshToken = RefreshToken.create(account.getId());
         refreshTokenRepository.save(refreshToken);
 
         return new LoginResponse(accessToken, refreshToken.getToken());
@@ -63,13 +62,14 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        AuthPrincipal user = findByEmail(refreshToken.getEmail());
+        Account account = accountRepository.findById(refreshToken.getAccountId())
+                .orElseThrow(InvalidCredentialsException::new);
 
-        if (!user.isEmailVerified()) {
+        if (!account.isEmailVerified()) {
             throw new EmailNotVerifiedException();
         }
 
-        return new LoginResponse(createAccessToken(user), refreshToken.getToken());
+        return new LoginResponse(createAccessToken(account), refreshToken.getToken());
     }
 
     /**
@@ -80,22 +80,11 @@ public class AuthService {
         refreshTokenRepository.deleteByToken(refreshTokenValue);
     }
 
-    private String createAccessToken(AuthPrincipal user) {
+    private String createAccessToken(Account account) {
         return jwtProvider.createAccessToken(
-                user.getEmail(),
-                user.getId(),
-                user.getRole().name()
+                account.getEmail(),
+                account.getId(),
+                account.getRole().name()
         );
     }
-
-    private AuthPrincipal findByEmail(String email) {
-
-        return employerRepository.findByEmail(email)
-                .<AuthPrincipal>map(e -> e)
-                .orElseGet(() ->
-                        employeeRepository.findByEmail(email)
-                                .orElseThrow(InvalidCredentialsException::new)
-                );
-    }
-
 }

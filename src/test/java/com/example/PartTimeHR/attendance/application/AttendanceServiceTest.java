@@ -5,7 +5,6 @@ import com.example.PartTimeHR.attendance.presentation.dto.AttendanceMatchStatus;
 import com.example.PartTimeHR.attendance.presentation.dto.AttendanceSummaryResponse;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.leave.domain.LeaveRequestRepository;
-import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
 import com.example.PartTimeHR.store.domain.Store;
@@ -216,11 +215,8 @@ class AttendanceServiceTest {
         return Employee.builder()
                 .id(id)
                 .name(name)
-                .email(name.toLowerCase() + "@test.com")
-                .password("encoded")
                 .phone("01012341234")
                 .store(store)
-                .role(Role.ROLE_EMPLOYEE)
                 .build();
     }
 }

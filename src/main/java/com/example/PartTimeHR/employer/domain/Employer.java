@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.employer.domain;
 
-import com.example.PartTimeHR.auth.domain.AuthPrincipal;
+import com.example.PartTimeHR.auth.domain.Account;
 import com.example.PartTimeHR.store.domain.Store;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,57 +9,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 // 고용주(사장님)
+// 인증 정보(email/password/role/emailVerified)는 Account가 갖고,
+// Employer는 Account와 PK를 공유한다(@MapsId) — Employer.id == Account.id
 @Entity
-@Table(
-        name = "employer",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_employer_email",
-                        columnNames = "email"
-                )
-        }
-)
+@Table(name = "employer")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Employer implements AuthPrincipal {
+public class Employer {
 
-    /* 비즈니스 */
-    public void updateBasicInfo(String name, String phone) {
-        if (name != null) {
-            this.name = name;
-        }
-        if (phone != null) {
-            this.phone = phone;
-        }
-    }
-
-    // 암호화된 비밀번호만 받는다
-    public void changePassword(String encodedPassword) {
-        this.password = encodedPassword;
-    }
-
-    // PK
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 로그인용 이메일 (중복 불가)
-    @Column(nullable = false, length = 100)
-    private String email;
-
-    // 비밀번호 (암호화된 값만 저장)
-    @Column(nullable = false)
-    private String password;
-
-    @Column(nullable = false)
-    private boolean emailVerified;
-
-    // 권한
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private Role role;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @MapsId
+    @JoinColumn(name = "id")
+    private Account account;
 
     // 사장 이름
     @Column(name = "employer_name", nullable = false, length = 30)
@@ -80,10 +46,6 @@ public class Employer implements AuthPrincipal {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    /* =======================
-       생성 / 수정 시점 처리
-       ======================= */
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -94,13 +56,13 @@ public class Employer implements AuthPrincipal {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // 이메일 인증시 사용 메소드
-    public void verifyEmail() {
-        this.emailVerified = true;
-    }
-
-    @Override
-    public boolean isEmailVerified() {
-        return this.emailVerified;
+    /* 비즈니스 */
+    public void updateBasicInfo(String name, String phone) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (phone != null) {
+            this.phone = phone;
+        }
     }
 }

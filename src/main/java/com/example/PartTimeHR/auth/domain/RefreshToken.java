@@ -1,6 +1,5 @@
 package com.example.PartTimeHR.auth.domain;
 
-import com.example.PartTimeHR.employer.domain.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,22 +23,18 @@ public class RefreshToken {
     @Column(nullable = false, unique = true)
     private String token;
 
-    // 사용자 식별 (Employer/Employee 테이블이 분리돼 있어 이메일 + 역할로 저장)
+    // Account.id 참조 (Employer/Employee가 Account와 PK를 공유하므로
+    // 이 값이 곧 Employer.id / Employee.id와 같다)
     @Column(nullable = false)
-    private String email;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private Role role;
+    private Long accountId;
 
     @Column(nullable = false)
     private LocalDateTime expiredAt;
 
-    public static RefreshToken create(String email, Role role) {
+    public static RefreshToken create(Long accountId) {
         RefreshToken t = new RefreshToken();
         t.token = UUID.randomUUID().toString();
-        t.email = email;
-        t.role = role;
+        t.accountId = accountId;
         t.expiredAt = LocalDateTime.now().plusDays(VALIDITY_DAYS);
         return t;
     }

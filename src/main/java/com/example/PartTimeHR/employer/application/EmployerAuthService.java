@@ -1,5 +1,7 @@
 package com.example.PartTimeHR.employer.application;
 
+import com.example.PartTimeHR.auth.domain.Account;
+import com.example.PartTimeHR.auth.domain.AccountRepository;
 import com.example.PartTimeHR.global.config.AppProperties;
 import com.example.PartTimeHR.mail.domain.EmailVerification;
 import com.example.PartTimeHR.mail.domain.PasswordResetToken;
@@ -7,7 +9,6 @@ import com.example.PartTimeHR.mail.domain.EmailVerificationRepository;
 import com.example.PartTimeHR.mail.application.MailCooldownGuard;
 import com.example.PartTimeHR.mail.application.MailService;
 import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
-import com.example.PartTimeHR.employee.domain.EmployeeRepository;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.employer.presentation.dto.EmployerSignupRequest;
@@ -26,8 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EmployerAuthService {
 
+    private final AccountRepository accountRepository;
     private final EmployerRepository employerRepository;
-    private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationRepository emailVerificationRepository;
     private final MailService mailService;
@@ -43,9 +44,8 @@ public class EmployerAuthService {
     @Transactional
     public void signup(EmployerSignupRequest request) {
 
-        // 직원 계정과도 이메일이 겹치면 안 됨 (로그인이 이메일 하나로 이뤄짐)
-        if (employerRepository.existsByEmail(request.getEmail())
-                || employeeRepository.existsByEmail(request.getEmail())) {
+        // 이메일은 Account에서 전역 유일 (사장/직원 통틀어 로그인이 이메일 하나로 이뤄짐)
+        if (accountRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
@@ -53,18 +53,24 @@ public class EmployerAuthService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 1. Employer 생성 (인증용)
+        // 1. Account 생성 (인증용) - Employer보다 먼저 저장해야 PK가 생성돼 공유할 수 있다
+        Account account = Account.create(
+                request.getEmail(),
+                passwordEncoder.encode(request.getPassword()),
+                Role.ROLE_EMPLOYER,
+                false
+        );
+        accountRepository.save(account);
+
+        // 2. Employer 생성 (Account와 PK 공유)
         Employer employer = Employer.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .account(account)
                 .name(request.getName())
                 .phone(request.getPhone())
-                .role(Role.ROLE_EMPLOYER)
-                .emailVerified(false)
                 .build();
         employerRepository.save(employer);
 
-        // 2. findStore 생성
+        // 3. findStore 생성
         Store store = Store.builder()
                 .name(request.getStoreName())
                 .phone(request.getStorePhone())
@@ -76,7 +82,7 @@ public class EmployerAuthService {
                 .build();
         storeRepository.save(store);
 
-        // 3. 기본 PayPolicy 생성 - 주휴 포함 계약 매장은 최저임금 × 1.2가 실질 최저
+        // 4. 기본 PayPolicy 생성 - 주휴 포함 계약 매장은 최저임금 × 1.2가 실질 최저
         int defaultWage = Boolean.TRUE.equals(store.getWeeklyAllowanceIncluded())
                 ? (int) Math.ceil(appProperties.getMinimumWage() * 1.2)
                 : appProperties.getMinimumWage();
@@ -90,12 +96,12 @@ public class EmployerAuthService {
                 .build();
         payPolicyRepository.save(defaultPolicy);
 
-        // 4. 이메일 인증
+        // 5. 이메일 인증
         EmailVerification ev = EmailVerification.create(employer);
         emailVerificationRepository.save(ev);
 
         mailService.sendHtmlEmail(
-                employer.getEmail(),
+                account.getEmail(),
                 "이메일 인증",
                 createVerificationEmailHtml(employer.getName(), ev.getToken())
         );
@@ -107,7 +113,7 @@ public class EmployerAuthService {
     public void requestPasswordReset(String email) {
         mailCooldownGuard.checkAndMark(email);
 
-        Employer employer = employerRepository.findByEmail(email)
+        Employer employer = employerRepository.findByAccount_Email(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일"));
 
         PasswordResetToken token = PasswordResetToken.create(employer);
@@ -141,13 +147,13 @@ public class EmployerAuthService {
         PasswordResetToken resetToken = findValidToken(token);
 
         Employer employer = resetToken.getEmployer();
-        employer.changePassword(passwordEncoder.encode(newPassword));
+        employer.getAccount().changePassword(passwordEncoder.encode(newPassword));
 
         // 재사용 방지 (1회용 토큰)
         passwordResetTokenRepository.delete(resetToken);
 
         // 비밀번호가 바뀌면 기존 세션(refresh 토큰) 폐기
-        refreshTokenRepository.deleteByEmail(employer.getEmail());
+        refreshTokenRepository.deleteByAccountId(employer.getId());
     }
 
     private PasswordResetToken findValidToken(String token) {

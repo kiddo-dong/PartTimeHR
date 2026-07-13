@@ -29,13 +29,13 @@ public class EmailVerificationService {
             throw new IllegalArgumentException("만료된 토큰");
         }
 
-        ev.getEmployer().verifyEmail();
+        ev.getEmployer().getAccount().verifyEmail();
     }
 
     public void resendVerificationEmail(String email) {
         mailCooldownGuard.checkAndMark(email);
 
-        Employer employer = employerRepository.findByEmail(email)
+        Employer employer = employerRepository.findByAccount_Email(email)
                 .orElseThrow(EmployerNotFoundException::new);
 
         // 기존 토큰 조회
@@ -78,7 +78,7 @@ public class EmailVerificationService {
                 + "</body>"
                 + "</html>";
 
-        mailService.sendHtmlEmail(employer.getEmail(), "이메일 인증 재발송", html);
+        mailService.sendHtmlEmail(employer.getAccount().getEmail(), "이메일 인증 재발송", html);
     }
 
 

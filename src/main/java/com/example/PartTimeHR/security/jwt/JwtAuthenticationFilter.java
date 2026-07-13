@@ -1,8 +1,6 @@
 package com.example.PartTimeHR.security.jwt;
 
-import com.example.PartTimeHR.employee.domain.EmployeeRepository;
-import com.example.PartTimeHR.employer.domain.Role;
-import com.example.PartTimeHR.employer.domain.EmployerRepository;
+import com.example.PartTimeHR.auth.domain.AccountRepository;
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -23,8 +21,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
-    private final EmployerRepository employerRepository;
-    private final EmployeeRepository employeeRepository;
+    private final AccountRepository accountRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -58,19 +55,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void authenticate(String token) {
         try {
             Claims claims = jwtProvider.getClaims(token);
-
             String email = claims.getSubject();
-            Role role = Role.valueOf(claims.get("role", String.class));
 
-            CustomUserDetails userDetails = switch (role) {
-                case ROLE_EMPLOYER -> employerRepository.findByEmail(email)
-                        .map(CustomUserDetails::new)
-                        .orElse(null);
-                case ROLE_EMPLOYEE -> employeeRepository.findByEmail(email)
-                        .map(CustomUserDetails::new)
-                        .orElse(null);
-                default -> null;
-            };
+            // Employer/Employee가 Account와 PK를 공유하므로, 로그인 시점엔
+            // Account만 조회하면 충분하다 (role별로 다른 테이블을 뒤질 필요가 없다)
+            CustomUserDetails userDetails = accountRepository.findByEmail(email)
+                    .map(CustomUserDetails::new)
+                    .orElse(null);
 
             if (userDetails == null) {
                 return;
