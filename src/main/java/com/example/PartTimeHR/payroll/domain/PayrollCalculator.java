@@ -34,10 +34,18 @@ import java.util.Set;
  * 4. 야간근로 가산 (제56조, 상시 5인 이상 사업장만):
  *    22:00~06:00 사이의 실근로 분 × 시급 × 50% (휴게 구간 제외)
  *
+ * 5. 휴일근로 가산 (제56조 2항, 상시 5인 이상 사업장만):
+ *    법정 유급휴일(관공서 공휴일·대체공휴일·근로자의 날)의 근로에
+ *    8시간 이내 50%, 8시간 초과분 100% 가산
+ *    - 휴일 근로일은 연장근로 계산에서 제외 (중복 가산 방지)
+ *    - 공휴일에 스케줄이 있었지만 쉰 것은 결근이 아니므로 개근 판정에서 제외
+ *
  * 단순화한 부분:
  * - 조회 구간이 주 중간을 자르면 그 주는 잘린 부분만으로 집계된다
  *   (정확한 정산은 주 시작 요일에 맞춘 구간으로 조회할 것)
- * - 휴일근로 가산은 미구현 (공휴일/약정휴일 정보 없음)
+ * - 휴일 판정은 기록의 workDate 기준 (자정 넘김 근무의 익일 유급휴일 분리 없음)
+ * - 직원별 약정 주휴일(요일) 근무의 휴일 가산은 미구현 (주휴일 지정 데이터 없음)
+ * - 유급휴일에 쉰 날의 유급휴일수당(미근무 유급분)은 미구현
  */
 public class PayrollCalculator {
 
@@ -54,6 +62,7 @@ public class PayrollCalculator {
             long weeklyAllowance,
             long overtimeAllowance,
             long nightAllowance,
+            long holidayAllowance,
             long totalPay
     ) {}
 
@@ -107,12 +116,41 @@ public class PayrollCalculator {
         }
 
         // 주별 소정근로일 (스케줄이 있는 날짜) - 개근 판정용
+        // 유급휴일에 쉰 것은 결근이 아니므로 소정근로일에서 제외
         Map<LocalDate, Set<LocalDate>> scheduledDaysByWeek = new HashMap<>();
         for (Schedule schedule : schedules) {
+            if (KoreanHolidayCalendar.isPaidHoliday(schedule.getWorkDate(), fiveOrMoreEmployees)) {
+                continue;
+            }
             LocalDate weekStart = ScheduleDateCalculator.getWeekStartDate(schedule.getWorkDate(), weekStartDay);
             scheduledDaysByWeek
                     .computeIfAbsent(weekStart, key -> new HashSet<>())
                     .add(schedule.getWorkDate());
+        }
+
+        // 휴일근로 가산 (제56조 2항, 5인 이상만): 8시간 이내 50%, 초과분 100%
+        long holidayAllowance = 0;
+        Set<LocalDate> premiumHolidays = new HashSet<>();
+        Map<LocalDate, Integer> holidayMinutesByWeek = new HashMap<>();
+        if (fiveOrMoreEmployees) {
+            for (Map.Entry<LocalDate, Integer> day : dayMinutes.entrySet()) {
+                if (!KoreanHolidayCalendar.isPaidHoliday(day.getKey(), true)) {
+                    continue;
+                }
+                premiumHolidays.add(day.getKey());
+
+                int minutes = day.getValue();
+                double averageWage = dayPay.get(day.getKey()) * 60.0 / minutes;
+
+                int within = Math.min(minutes, DAILY_STANDARD_MINUTES);
+                int over = Math.max(0, minutes - DAILY_STANDARD_MINUTES);
+
+                holidayAllowance += Math.round(within / 60.0 * averageWage * PREMIUM_RATE);
+                holidayAllowance += Math.round(over / 60.0 * averageWage); // 초과분은 100% 가산
+
+                LocalDate weekStart = ScheduleDateCalculator.getWeekStartDate(day.getKey(), weekStartDay);
+                holidayMinutesByWeek.merge(weekStart, minutes, Integer::sum);
+            }
         }
 
         // 주휴수당 (시급 포함 계약이 아니면 별도 계산 - 법정 기본)
@@ -143,9 +181,12 @@ public class PayrollCalculator {
         // 연장근로 가산 (5인 이상 사업장만)
         long overtimeAllowance = 0;
         if (fiveOrMoreEmployees) {
-            // 1일 8시간 초과분
+            // 1일 8시간 초과분 (휴일 근로일은 휴일 가산에서 처리하므로 제외)
             Map<LocalDate, Integer> dailyOvertimeByWeek = new HashMap<>();
             for (Map.Entry<LocalDate, Integer> day : dayMinutes.entrySet()) {
+                if (premiumHolidays.contains(day.getKey())) {
+                    continue;
+                }
                 int overtime = Math.max(0, day.getValue() - DAILY_STANDARD_MINUTES);
                 if (overtime == 0) {
                     continue;
@@ -159,9 +200,11 @@ public class PayrollCalculator {
             }
 
             // 주 40시간 초과 중 일별로 잡히지 않은 추가분 (중복 가산 방지)
+            // 휴일 근로 분은 휴일 가산에서 처리했으므로 주 기준에서도 제외
             for (Map.Entry<LocalDate, Integer> week : weekMinutes.entrySet()) {
+                int weekBase = week.getValue() - holidayMinutesByWeek.getOrDefault(week.getKey(), 0);
                 int alreadyCounted = dailyOvertimeByWeek.getOrDefault(week.getKey(), 0);
-                int weeklyOvertime = Math.max(0, week.getValue() - WEEKLY_STANDARD_MINUTES - alreadyCounted);
+                int weeklyOvertime = Math.max(0, weekBase - WEEKLY_STANDARD_MINUTES - alreadyCounted);
                 if (weeklyOvertime == 0) {
                     continue;
                 }
@@ -171,9 +214,10 @@ public class PayrollCalculator {
             }
         }
 
-        long totalPay = basePay + weeklyAllowance + overtimeAllowance + nightAllowance;
+        long totalPay = basePay + weeklyAllowance + overtimeAllowance + nightAllowance + holidayAllowance;
 
-        return new Result(totalNetMinutes, basePay, weeklyAllowance, overtimeAllowance, nightAllowance, totalPay);
+        return new Result(totalNetMinutes, basePay, weeklyAllowance,
+                overtimeAllowance, nightAllowance, holidayAllowance, totalPay);
     }
 
     /** 기록의 야간(22:00~06:00) 실근로 분 - 휴게 구간 제외 */

@@ -85,6 +85,7 @@ public class PayrollService {
                     .weeklyAllowance(result.weeklyAllowance())
                     .overtimeAllowance(result.overtimeAllowance())
                     .nightAllowance(result.nightAllowance())
+                    .holidayAllowance(result.holidayAllowance())
                     .totalPay(result.totalPay())
                     .build());
         }
@@ -163,6 +164,7 @@ public class PayrollService {
                 .weeklyAllowance(result.weeklyAllowance())
                 .overtimeAllowance(result.overtimeAllowance())
                 .nightAllowance(result.nightAllowance())
+                .holidayAllowance(result.holidayAllowance())
                 .totalPay(result.totalPay())
                 .records(recordResponses)
                 .build();

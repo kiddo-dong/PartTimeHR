@@ -15,5 +15,6 @@ public class EmployeePayrollResponse {
     private long weeklyAllowance;     // 주휴수당
     private long overtimeAllowance;   // 연장근로 가산 (5인 이상 사업장)
     private long nightAllowance;      // 야간근로 가산 (5인 이상 사업장)
+    private long holidayAllowance;    // 휴일근로 가산 (공휴일·근로자의 날, 5인 이상)
     private long totalPay;            // 합계
 }

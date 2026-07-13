@@ -164,6 +164,75 @@ class PayrollCalculatorTest {
     }
 
     @Test
+    void 공휴일_근로는_50퍼센트_가산된다_5인_이상() {
+        // 2026-10-09 한글날(금) 8시간 근무, 시급 10,000원
+        LocalDate hangulDay = LocalDate.of(2026, 10, 9);
+        List<WorkRecord> records = List.of(record(hangulDay, 480, 10000));
+
+        PayrollCalculator.Result result = calc(records, List.of(), false, true);
+
+        // 8시간 × 10,000 × 0.5 = 40,000원
+        assertThat(result.holidayAllowance()).isEqualTo(40000);
+        assertThat(result.overtimeAllowance()).isEqualTo(0); // 연장과 중복 가산 없음
+    }
+
+    @Test
+    void 공휴일_8시간_초과분은_100퍼센트_가산된다() {
+        // 한글날 10시간 근무: 8h × 0.5 + 2h × 1.0
+        LocalDate hangulDay = LocalDate.of(2026, 10, 9);
+        List<WorkRecord> records = List.of(record(hangulDay, 600, 10000));
+
+        PayrollCalculator.Result result = calc(records, List.of(), false, true);
+
+        assertThat(result.holidayAllowance()).isEqualTo(40000 + 20000);
+        assertThat(result.overtimeAllowance()).isEqualTo(0); // 초과분은 휴일 100%로만
+    }
+
+    @Test
+    void 상시_5인_미만은_공휴일_가산이_없다() {
+        LocalDate hangulDay = LocalDate.of(2026, 10, 9);
+        List<WorkRecord> records = List.of(record(hangulDay, 480, 10000));
+
+        PayrollCalculator.Result result = calc(records, List.of(), false, false);
+
+        assertThat(result.holidayAllowance()).isEqualTo(0);
+    }
+
+    @Test
+    void 대체공휴일과_설연휴도_휴일로_인식된다() {
+        // 2026-03-02 삼일절 대체공휴일, 2026-02-17 설날
+        assertThat(KoreanHolidayCalendar.isPublicHoliday(LocalDate.of(2026, 3, 2))).isTrue();
+        assertThat(KoreanHolidayCalendar.isPublicHoliday(LocalDate.of(2026, 2, 17))).isTrue();
+        assertThat(KoreanHolidayCalendar.isPublicHoliday(LocalDate.of(2026, 7, 13))).isFalse();
+
+        // 근로자의 날은 규모 무관 유급휴일
+        assertThat(KoreanHolidayCalendar.isPaidHoliday(LocalDate.of(2026, 5, 1), false)).isTrue();
+        // 5인 미만은 관공서 공휴일 미적용
+        assertThat(KoreanHolidayCalendar.isPaidHoliday(LocalDate.of(2026, 10, 9), false)).isFalse();
+    }
+
+    @Test
+    void 공휴일에_스케줄이_있었지만_쉰_것은_개근을_깨지_않는다() {
+        // 화·수(평일) + 금(한글날 2026-10-09) 스케줄 - 한글날은 쉬었지만 개근 유지
+        LocalDate tue = LocalDate.of(2026, 10, 6);
+        LocalDate wed = LocalDate.of(2026, 10, 7);
+        LocalDate fri = LocalDate.of(2026, 10, 9); // 한글날
+
+        List<WorkRecord> records = List.of(
+                record(tue, 600, 10000),
+                record(wed, 600, 10000)
+        );
+        List<Schedule> schedules = List.of(
+                schedule(tue), schedule(wed), schedule(fri) // 한글날 스케줄은 쉼
+        );
+
+        PayrollCalculator.Result result = calc(records, schedules, true, true);
+
+        // 20시간 + 개근(한글날 제외) → 주휴수당 지급
+        assertThat(result.weeklyAllowance()).isEqualTo(40000);
+    }
+
+    @Test
     void 주가_다르면_주휴수당은_주별로_따로_판정한다() {
         // 1주차 20시간(주휴 O), 2주차 10시간(주휴 X)
         List<WorkRecord> records = List.of(
