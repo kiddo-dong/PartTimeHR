@@ -9,6 +9,7 @@ import com.example.PartTimeHR.store.domain.Store;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +56,15 @@ public class Employee implements AuthPrincipal {
     @Column(nullable = false)
     private Role role;
 
+    // 약정 주휴일 요일 (1=월 ~ 7=일, null이면 미지정)
+    // 이 요일의 근무는 휴일근로 가산(5인 이상), 쉼은 결근이 아님
+    @Column(name = "weekly_rest_day")
+    private Integer weeklyRestDay;
+
+    // 입사일 (퇴직금·연차 산정 기준)
+    @Column(name = "hired_at")
+    private LocalDate hiredAt;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -84,5 +94,9 @@ public class Employee implements AuthPrincipal {
 
     public void changePayPolicy(PayPolicy policy) {
         this.payPolicy = policy;
+    }
+
+    public void assignWeeklyRestDay(Integer weeklyRestDay) {
+        this.weeklyRestDay = weeklyRestDay;
     }
 }

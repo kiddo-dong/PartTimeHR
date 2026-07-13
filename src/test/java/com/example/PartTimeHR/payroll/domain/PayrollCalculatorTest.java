@@ -42,7 +42,8 @@ class PayrollCalculatorTest {
     // calculateWeekly=true → 주휴 별도 계산 (시급 포함 계약이 아님), 현재 시급 10,000원 가정
     private PayrollCalculator.Result calc(List<WorkRecord> records, List<Schedule> schedules,
                                           boolean calculateWeekly, boolean fiveOrMore) {
-        return PayrollCalculator.calculate(records, schedules, MONDAY, !calculateWeekly, fiveOrMore, 10000);
+        return PayrollCalculator.calculate(records, schedules, List.of(),
+                new PayrollCalculator.Params(MONDAY, !calculateWeekly, fiveOrMore, 10000, null));
     }
 
     @Test
@@ -272,6 +273,41 @@ class PayrollCalculatorTest {
         List<Schedule> hangulDay = List.of(schedule(LocalDate.of(2026, 10, 9)));
         PayrollCalculator.Result withPublicHoliday = calc(List.of(), hangulDay, true, false);
         assertThat(withPublicHoliday.holidayLeavePay()).isEqualTo(0);
+    }
+
+    @Test
+    void 약정_주휴일_근무는_휴일_가산이_붙는다_5인_이상() {
+        // 주휴일=일요일(7), 일요일(2026-07-19) 8시간 근무
+        List<WorkRecord> records = List.of(record(MON.plusDays(6), 480, 10000));
+
+        PayrollCalculator.Result result = PayrollCalculator.calculate(
+                records, List.of(), List.of(),
+                new PayrollCalculator.Params(MONDAY, true, true, 10000, 7));
+
+        // 가산 50%만 (유급분은 주휴수당의 몫이라 holidayLeavePay 없음)
+        assertThat(result.holidayAllowance()).isEqualTo(40000);
+        assertThat(result.holidayLeavePay()).isEqualTo(0);
+    }
+
+    @Test
+    void 승인된_연차_사용일은_연차수당이_지급되고_개근을_깨지_않는다() {
+        // 월·수 근무(20시간) + 화요일 연차 (스케줄 3일)
+        List<WorkRecord> records = List.of(
+                record(MON, 600, 10000),
+                record(MON.plusDays(2), 600, 10000)
+        );
+        List<Schedule> schedules = List.of(
+                schedule(MON), schedule(MON.plusDays(1)), schedule(MON.plusDays(2))
+        );
+
+        PayrollCalculator.Result result = PayrollCalculator.calculate(
+                records, schedules, List.of(MON.plusDays(1)),
+                new PayrollCalculator.Params(MONDAY, false, false, 10000, null));
+
+        // 연차수당: 화요일 스케줄 9시간 → 8시간 한도 × 10,000 = 80,000
+        assertThat(result.annualLeavePay()).isEqualTo(80000);
+        // 연차 사용은 결근이 아님 → 개근 유지 → 주휴수당 지급
+        assertThat(result.weeklyAllowance()).isEqualTo(40000);
     }
 
     @Test

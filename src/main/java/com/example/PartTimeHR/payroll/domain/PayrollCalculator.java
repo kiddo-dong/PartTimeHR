@@ -40,7 +40,14 @@ import java.util.Set;
  *    - 휴일 근로일은 연장근로 계산에서 제외 (중복 가산 방지)
  *    - 공휴일에 스케줄이 있었지만 쉰 것은 결근이 아니므로 개근 판정에서 제외
  *
- * 6. 유급휴일수당 (제55조 2항·근로자의날법):
+ * 6. 약정 주휴일 근무 가산: 직원별 지정 요일(weeklyRestDay)의 근무는
+ *    휴일근로로 가산 (5인 이상만). 유급분은 주휴수당이 담당하므로 가산만 지급.
+ *    주휴일에 스케줄이 있었지만 쉰 것도 개근 판정에서 제외
+ *
+ * 7. 연차수당 (제60조): 승인된 연차 사용일은 유급
+ *    (그날 스케줄 시간 기준, 없으면 8시간 - 일 8시간 한도)
+ *
+ * 8. 유급휴일수당 (제55조 2항·근로자의날법):
  *    유급휴일이 소정근로일(스케줄 존재)이면 근무 여부와 무관하게
  *    소정근로시간(일 8시간 한도) × 현재 시급을 지급
  *    - 쉰 날: 이 유급분만 지급
@@ -72,7 +79,21 @@ public class PayrollCalculator {
             long nightAllowance,
             long holidayAllowance,
             long holidayLeavePay,
+            long annualLeavePay,
             long totalPay
+    ) {}
+
+    /**
+     * 계산 파라미터.
+     * @param currentHourlyWage 직원의 현재 정책 시급 (유급휴일·연차수당용 - 미근무일은 스냅샷이 없음)
+     * @param weeklyRestDay 직원별 약정 주휴일 요일 (1=월 ~ 7=일, null이면 미지정)
+     */
+    public record Params(
+            int weekStartDay,
+            boolean weeklyAllowanceIncluded,
+            boolean fiveOrMoreEmployees,
+            int currentHourlyWage,
+            Integer weeklyRestDay
     ) {}
 
     /** 기록 1건의 기본급 (실근무 분 × 시급 스냅샷) */
@@ -80,18 +101,26 @@ public class PayrollCalculator {
         return Math.round(record.getActualWorkMinutes() * record.getAppliedHourlyWage() / 60.0);
     }
 
+    /** 약정 주휴일인가 (직원별 지정 요일) */
+    private static boolean isRestDay(LocalDate date, Integer weeklyRestDay) {
+        return weeklyRestDay != null && date.getDayOfWeek().getValue() == weeklyRestDay;
+    }
+
     /**
-     * 퇴근 완료된 기록들과 스케줄(개근 판정·유급휴일수당용)로 한 직원의 급여를 계산한다.
-     * @param currentHourlyWage 직원의 현재 정책 시급 (유급휴일수당용 - 미근무일은 스냅샷이 없음)
+     * 한 직원의 급여를 계산한다.
+     * @param schedules 개근 판정·유급휴일수당용
+     * @param approvedLeaveDates 승인된 연차 사용일 (연차수당 지급 + 결근 아님 처리)
      */
     public static Result calculate(
             List<WorkRecord> completedRecords,
             List<Schedule> schedules,
-            int weekStartDay,
-            boolean weeklyAllowanceIncluded,
-            boolean fiveOrMoreEmployees,
-            int currentHourlyWage
+            List<LocalDate> approvedLeaveDates,
+            Params params
     ) {
+        int weekStartDay = params.weekStartDay();
+        boolean weeklyAllowanceIncluded = params.weeklyAllowanceIncluded();
+        boolean fiveOrMoreEmployees = params.fiveOrMoreEmployees();
+        int currentHourlyWage = params.currentHourlyWage();
         int totalNetMinutes = 0;
         long basePay = 0;
 
@@ -129,16 +158,19 @@ public class PayrollCalculator {
         }
 
         // 주별 소정근로일 (스케줄이 있는 날짜) - 개근 판정용
-        // 유급휴일에 쉰 것은 결근이 아니므로 소정근로일에서 제외
+        // 유급휴일·약정 주휴일에 쉰 것과 승인된 연차 사용은 결근이 아니므로 제외
         Map<LocalDate, Set<LocalDate>> scheduledDaysByWeek = new HashMap<>();
         for (Schedule schedule : schedules) {
-            if (KoreanHolidayCalendar.isPaidHoliday(schedule.getWorkDate(), fiveOrMoreEmployees)) {
+            LocalDate date = schedule.getWorkDate();
+            if (KoreanHolidayCalendar.isPaidHoliday(date, fiveOrMoreEmployees)
+                    || isRestDay(date, params.weeklyRestDay())
+                    || approvedLeaveDates.contains(date)) {
                 continue;
             }
-            LocalDate weekStart = ScheduleDateCalculator.getWeekStartDate(schedule.getWorkDate(), weekStartDay);
+            LocalDate weekStart = ScheduleDateCalculator.getWeekStartDate(date, weekStartDay);
             scheduledDaysByWeek
                     .computeIfAbsent(weekStart, key -> new HashSet<>())
-                    .add(schedule.getWorkDate());
+                    .add(date);
         }
 
         // 유급휴일수당: 유급휴일이 소정근로일이면 근무 여부와 무관하게
@@ -158,13 +190,31 @@ public class PayrollCalculator {
             );
         }
 
+        // 연차수당 (제60조): 승인된 연차 사용일은 유급
+        // 그날 스케줄 시간(일 8시간 한도) 기준, 스케줄이 없으면 8시간 기준
+        long annualLeavePay = 0;
+        Map<LocalDate, Integer> scheduledMinutesByDate = new HashMap<>();
+        for (Schedule schedule : schedules) {
+            int scheduled = (int) Duration.between(schedule.getStartTime(), schedule.getEndTime()).toMinutes();
+            scheduledMinutesByDate.merge(schedule.getWorkDate(), scheduled, Integer::sum);
+        }
+        for (LocalDate leaveDate : approvedLeaveDates) {
+            int minutes = scheduledMinutesByDate.getOrDefault(leaveDate, DAILY_STANDARD_MINUTES);
+            annualLeavePay += Math.round(
+                    Math.min(minutes, DAILY_STANDARD_MINUTES) / 60.0 * currentHourlyWage
+            );
+        }
+
         // 휴일근로 가산 (제56조 2항, 5인 이상만): 8시간 이내 50%, 초과분 100%
+        // 약정 주휴일(직원별 지정 요일) 근무도 휴일근로
+        // (주휴일의 유급분은 주휴수당이므로 여기서는 가산만 더한다)
         long holidayAllowance = 0;
         Set<LocalDate> premiumHolidays = new HashSet<>();
         Map<LocalDate, Integer> holidayMinutesByWeek = new HashMap<>();
         if (fiveOrMoreEmployees) {
             for (Map.Entry<LocalDate, Integer> day : dayMinutes.entrySet()) {
-                if (!KoreanHolidayCalendar.isPaidHoliday(day.getKey(), true)) {
+                if (!KoreanHolidayCalendar.isPaidHoliday(day.getKey(), true)
+                        && !isRestDay(day.getKey(), params.weeklyRestDay())) {
                     continue;
                 }
                 premiumHolidays.add(day.getKey());
@@ -245,10 +295,10 @@ public class PayrollCalculator {
         }
 
         long totalPay = basePay + weeklyAllowance + overtimeAllowance
-                + nightAllowance + holidayAllowance + holidayLeavePay;
+                + nightAllowance + holidayAllowance + holidayLeavePay + annualLeavePay;
 
-        return new Result(totalNetMinutes, basePay, weeklyAllowance,
-                overtimeAllowance, nightAllowance, holidayAllowance, holidayLeavePay, totalPay);
+        return new Result(totalNetMinutes, basePay, weeklyAllowance, overtimeAllowance,
+                nightAllowance, holidayAllowance, holidayLeavePay, annualLeavePay, totalPay);
     }
 
     /** 기록의 야간(22:00~06:00) 실근로 분 - 휴게 구간 제외 */

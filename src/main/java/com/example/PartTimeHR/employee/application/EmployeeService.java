@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -74,6 +75,8 @@ public class EmployeeService {
                 .store(store)
                 .payPolicy(policy)
                 .role(Role.ROLE_EMPLOYEE)
+                .weeklyRestDay(request.getWeeklyRestDay())
+                .hiredAt(request.getHiredAt() != null ? request.getHiredAt() : LocalDate.now())
                 .build();
 
         Employee saved = employeeRepository.save(employee);
@@ -121,6 +124,11 @@ public class EmployeeService {
                     request.getName(),
                     request.getPhone()
             );
+        }
+
+        /* ===== 주휴일 요일 변경 ===== */
+        if (request.getWeeklyRestDay() != null) {
+            employee.assignWeeklyRestDay(request.getWeeklyRestDay());
         }
 
         /* ===== 페이 정책 변경 ===== */

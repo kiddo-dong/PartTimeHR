@@ -74,10 +74,8 @@ public class PayrollService {
             PayrollCalculator.Result result = PayrollCalculator.calculate(
                     employeeRecords,
                     schedulesByEmployee.getOrDefault(employee.getId(), List.of()),
-                    store.getWeekStartDay(),
-                    store.getWeeklyAllowanceIncluded(),
-                    store.getFiveOrMoreEmployees(),
-                    employee.getPayPolicy().getHourlyWage()
+                    List.of(), // 승인된 연차 사용일 (연차 도메인 연동 예정)
+                    calcParams(store, employee)
             );
 
             // 급여가 전혀 발생하지 않은 직원은 요약에서 제외
@@ -147,10 +145,8 @@ public class PayrollService {
         PayrollCalculator.Result result = PayrollCalculator.calculate(
                 records,
                 schedules,
-                store.getWeekStartDay(),
-                store.getWeeklyAllowanceIncluded(),
-                store.getFiveOrMoreEmployees(),
-                employee.getPayPolicy().getHourlyWage()
+                List.of(), // 승인된 연차 사용일 (연차 도메인 연동 예정)
+                calcParams(store, employee)
         );
 
         List<PayrollRecordResponse> recordResponses = records.stream()
@@ -182,6 +178,16 @@ public class PayrollService {
                 .totalPay(result.totalPay())
                 .records(recordResponses)
                 .build();
+    }
+
+    private PayrollCalculator.Params calcParams(Store store, Employee employee) {
+        return new PayrollCalculator.Params(
+                store.getWeekStartDay(),
+                store.getWeeklyAllowanceIncluded(),
+                store.getFiveOrMoreEmployees(),
+                employee.getPayPolicy().getHourlyWage(),
+                employee.getWeeklyRestDay()
+        );
     }
 
     private List<WorkRecord> completedOnly(List<WorkRecord> records) {

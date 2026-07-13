@@ -3,6 +3,8 @@ package com.example.PartTimeHR.employee.presentation.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.time.LocalDate;
+
 @Getter
 @AllArgsConstructor
 public class EmployeeInfoResponse {
@@ -15,4 +17,6 @@ public class EmployeeInfoResponse {
     private String storeName;
     private String jobTitle;
     private int hourlyWage;
+    private Integer weeklyRestDay;
+    private LocalDate hiredAt;
 }
