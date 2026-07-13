@@ -4,6 +4,7 @@ import com.example.PartTimeHR.attendance.presentation.dto.AttendanceDailyRespons
 import com.example.PartTimeHR.attendance.presentation.dto.AttendanceMatchStatus;
 import com.example.PartTimeHR.attendance.presentation.dto.AttendanceSummaryResponse;
 import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.leave.domain.LeaveRequestRepository;
 import com.example.PartTimeHR.employer.domain.Role;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
@@ -36,6 +37,10 @@ class AttendanceServiceTest {
 
     @Mock
     private WorkRecordRepository workRecordRepository;
+
+    // 미스텁 시 빈 리스트 반환 (연차 없음 가정)
+    @Mock
+    private LeaveRequestRepository leaveRequestRepository;
 
     @InjectMocks
     private AttendanceService attendanceService;

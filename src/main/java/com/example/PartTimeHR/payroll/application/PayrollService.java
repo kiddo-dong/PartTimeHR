@@ -2,6 +2,9 @@ package com.example.PartTimeHR.payroll.application;
 
 import com.example.PartTimeHR.employee.application.EmployeeAccessService;
 import com.example.PartTimeHR.global.config.AppProperties;
+import com.example.PartTimeHR.leave.domain.LeaveRequest;
+import com.example.PartTimeHR.leave.domain.LeaveRequestRepository;
+import com.example.PartTimeHR.leave.domain.LeaveStatus;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.payroll.domain.PayrollCalculator;
 import com.example.PartTimeHR.payroll.presentation.dto.EmployeePayrollDetailResponse;
@@ -37,6 +40,7 @@ public class PayrollService {
     private final EmployeeAccessService employeeAccessService;
     private final WorkRecordRepository workRecordRepository;
     private final ScheduleRepository scheduleRepository;
+    private final LeaveRequestRepository leaveRequestRepository;
     private final AppProperties appProperties;
 
     // 매장 전체 급여 요약 (사장)
@@ -70,6 +74,16 @@ public class PayrollService {
             employeesById.putIfAbsent(schedule.getEmployee().getId(), schedule.getEmployee());
         }
 
+        // 승인된 연차 (직원별) - 연차수당 지급 + 개근 판정 제외
+        Map<Long, List<LocalDate>> leavesByEmployee = new HashMap<>();
+        for (LeaveRequest leave : leaveRequestRepository
+                .findAllByEmployee_Store_IdAndStatusAndLeaveDateBetween(storeId, LeaveStatus.APPROVED, from, to)) {
+            leavesByEmployee
+                    .computeIfAbsent(leave.getEmployee().getId(), key -> new ArrayList<>())
+                    .add(leave.getLeaveDate());
+            employeesById.putIfAbsent(leave.getEmployee().getId(), leave.getEmployee());
+        }
+
         List<EmployeePayrollResponse> employees = new ArrayList<>();
         long totalPay = 0;
 
@@ -79,7 +93,7 @@ public class PayrollService {
             PayrollCalculator.Result result = PayrollCalculator.calculate(
                     employeeRecords,
                     schedulesByEmployee.getOrDefault(employee.getId(), List.of()),
-                    List.of(), // 승인된 연차 사용일 (연차 도메인 연동 예정)
+                    leavesByEmployee.getOrDefault(employee.getId(), List.of()),
                     calcParams(store, employee)
             );
 
@@ -148,10 +162,16 @@ public class PayrollService {
         List<Schedule> schedules = scheduleRepository
                 .findByEmployeeAndWorkDateBetween(employee, from, to);
 
+        List<LocalDate> approvedLeaveDates = leaveRequestRepository
+                .findAllByEmployeeAndStatusAndLeaveDateBetween(employee, LeaveStatus.APPROVED, from, to)
+                .stream()
+                .map(LeaveRequest::getLeaveDate)
+                .toList();
+
         PayrollCalculator.Result result = PayrollCalculator.calculate(
                 records,
                 schedules,
-                List.of(), // 승인된 연차 사용일 (연차 도메인 연동 예정)
+                approvedLeaveDates,
                 calcParams(store, employee)
         );
 

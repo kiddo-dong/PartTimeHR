@@ -5,6 +5,9 @@ import com.example.PartTimeHR.attendance.presentation.dto.AttendanceDailyRespons
 import com.example.PartTimeHR.attendance.presentation.dto.AttendanceMatchStatus;
 import com.example.PartTimeHR.attendance.presentation.dto.AttendanceSummaryResponse;
 import com.example.PartTimeHR.employee.domain.Employee;
+import com.example.PartTimeHR.leave.domain.LeaveRequest;
+import com.example.PartTimeHR.leave.domain.LeaveRequestRepository;
+import com.example.PartTimeHR.leave.domain.LeaveStatus;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
 import com.example.PartTimeHR.store.domain.Store;
@@ -28,13 +31,15 @@ public class AttendanceService {
     private final StoreAccessService storeAccessService;
     private final ScheduleRepository scheduleRepository;
     private final WorkRecordRepository workRecordRepository;
+    private final LeaveRequestRepository leaveRequestRepository;
 
     public AttendanceDailyResponse getDailyAttendance(Long employerId, Long storeId, LocalDate date) {
         Store store = storeAccessService.getMyStore(storeId, employerId);
 
         List<Schedule> schedules = scheduleRepository.findByStoreAndWorkDate(store, date);
         List<WorkRecord> workRecords = workRecordRepository.findAllByStoreAndWorkDate(storeId, date);
-        DailyMetrics metrics = buildDailyMetrics(date, schedules, workRecords);
+        Set<Long> onLeave = approvedLeaveEmployeeIds(storeId, date, date).getOrDefault(date, Set.of());
+        DailyMetrics metrics = buildDailyMetrics(date, schedules, workRecords, onLeave);
 
         return AttendanceDailyResponse.builder()
                 .date(date)
@@ -65,6 +70,8 @@ public class AttendanceService {
             recordsByDate.computeIfAbsent(workRecord.getWorkDate(), ignored -> new ArrayList<>()).add(workRecord);
         }
 
+        Map<LocalDate, Set<Long>> onLeaveByDate = approvedLeaveEmployeeIds(storeId, from, to);
+
         int scheduledCount = 0;
         int workedCount = 0;
         int absentCount = 0;
@@ -76,7 +83,8 @@ public class AttendanceService {
             DailyMetrics daily = buildDailyMetrics(
                     date,
                     schedulesByDate.getOrDefault(date, List.of()),
-                    recordsByDate.getOrDefault(date, List.of())
+                    recordsByDate.getOrDefault(date, List.of()),
+                    onLeaveByDate.getOrDefault(date, Set.of())
             );
 
             scheduledCount += daily.scheduledCount;
@@ -103,7 +111,19 @@ public class AttendanceService {
                 .build();
     }
 
-    private DailyMetrics buildDailyMetrics(LocalDate date, List<Schedule> schedules, List<WorkRecord> workRecords) {
+    // 날짜별 승인 연차 직원 id
+    private Map<LocalDate, Set<Long>> approvedLeaveEmployeeIds(Long storeId, LocalDate from, LocalDate to) {
+        Map<LocalDate, Set<Long>> result = new HashMap<>();
+        for (LeaveRequest leave : leaveRequestRepository
+                .findAllByEmployee_Store_IdAndStatusAndLeaveDateBetween(storeId, LeaveStatus.APPROVED, from, to)) {
+            result.computeIfAbsent(leave.getLeaveDate(), ignored -> new HashSet<>())
+                    .add(leave.getEmployee().getId());
+        }
+        return result;
+    }
+
+    private DailyMetrics buildDailyMetrics(LocalDate date, List<Schedule> schedules, List<WorkRecord> workRecords,
+                                           Set<Long> onLeaveEmployeeIds) {
         // 하루에 여러 타임 근무가 가능하므로 직원당 스케줄을 리스트로 묶는다
         Map<Long, List<Schedule>> schedulesByEmployee = new HashMap<>();
         for (Schedule schedule : schedules) {
@@ -157,6 +177,10 @@ public class AttendanceService {
             if (!employeeSchedules.isEmpty() && records.isEmpty()) {
                 scheduledCount++;
 
+                // 승인된 연차 사용은 결근이 아니다
+                if (onLeaveEmployeeIds.contains(employeeId)) {
+                    status = AttendanceMatchStatus.ON_LEAVE;
+                } else
                 // 스케줄이 아직 끝나지 않았으면(당일 근무 전, 미래 날짜) 결근으로 치지 않는다
                 if (scheduledEnd.isBefore(LocalDateTime.now())) {
                     status = AttendanceMatchStatus.ABSENT;
