@@ -45,34 +45,45 @@ public class PayrollService {
                 workRecordRepository.findAllByStoreAndWorkDateBetween(storeId, from, to)
         );
 
+        Map<Long, Employee> employeesById = new HashMap<>();
+
         Map<Long, List<WorkRecord>> recordsByEmployee = new HashMap<>();
         for (WorkRecord record : records) {
             recordsByEmployee
                     .computeIfAbsent(record.getEmployee().getId(), key -> new ArrayList<>())
                     .add(record);
+            employeesById.putIfAbsent(record.getEmployee().getId(), record.getEmployee());
         }
 
-        // 개근 판정용 스케줄 (직원별)
+        // 개근 판정·유급휴일수당용 스케줄 (직원별)
+        // 기록이 없어도 휴일 스케줄이 있으면 유급휴일수당 대상이므로 직원 목록에 포함
         Map<Long, List<Schedule>> schedulesByEmployee = new HashMap<>();
         for (Schedule schedule : scheduleRepository.findByStoreAndWorkDateBetween(store, from, to)) {
             schedulesByEmployee
                     .computeIfAbsent(schedule.getEmployee().getId(), key -> new ArrayList<>())
                     .add(schedule);
+            employeesById.putIfAbsent(schedule.getEmployee().getId(), schedule.getEmployee());
         }
 
         List<EmployeePayrollResponse> employees = new ArrayList<>();
         long totalPay = 0;
 
-        for (List<WorkRecord> employeeRecords : recordsByEmployee.values()) {
-            Employee employee = employeeRecords.get(0).getEmployee();
+        for (Employee employee : employeesById.values()) {
+            List<WorkRecord> employeeRecords = recordsByEmployee.getOrDefault(employee.getId(), List.of());
 
             PayrollCalculator.Result result = PayrollCalculator.calculate(
                     employeeRecords,
                     schedulesByEmployee.getOrDefault(employee.getId(), List.of()),
                     store.getWeekStartDay(),
                     store.getWeeklyAllowanceIncluded(),
-                    store.getFiveOrMoreEmployees()
+                    store.getFiveOrMoreEmployees(),
+                    employee.getPayPolicy().getHourlyWage()
             );
+
+            // 급여가 전혀 발생하지 않은 직원은 요약에서 제외
+            if (result.totalPay() == 0 && employeeRecords.isEmpty()) {
+                continue;
+            }
 
             totalPay += result.totalPay();
 
@@ -86,6 +97,7 @@ public class PayrollService {
                     .overtimeAllowance(result.overtimeAllowance())
                     .nightAllowance(result.nightAllowance())
                     .holidayAllowance(result.holidayAllowance())
+                    .holidayLeavePay(result.holidayLeavePay())
                     .totalPay(result.totalPay())
                     .build());
         }
@@ -137,7 +149,8 @@ public class PayrollService {
                 schedules,
                 store.getWeekStartDay(),
                 store.getWeeklyAllowanceIncluded(),
-                store.getFiveOrMoreEmployees()
+                store.getFiveOrMoreEmployees(),
+                employee.getPayPolicy().getHourlyWage()
         );
 
         List<PayrollRecordResponse> recordResponses = records.stream()
@@ -165,6 +178,7 @@ public class PayrollService {
                 .overtimeAllowance(result.overtimeAllowance())
                 .nightAllowance(result.nightAllowance())
                 .holidayAllowance(result.holidayAllowance())
+                .holidayLeavePay(result.holidayLeavePay())
                 .totalPay(result.totalPay())
                 .records(recordResponses)
                 .build();

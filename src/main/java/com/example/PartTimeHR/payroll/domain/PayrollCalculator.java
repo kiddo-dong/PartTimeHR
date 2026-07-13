@@ -40,12 +40,20 @@ import java.util.Set;
  *    - 휴일 근로일은 연장근로 계산에서 제외 (중복 가산 방지)
  *    - 공휴일에 스케줄이 있었지만 쉰 것은 결근이 아니므로 개근 판정에서 제외
  *
+ * 6. 유급휴일수당 (제55조 2항·근로자의날법):
+ *    유급휴일이 소정근로일(스케줄 존재)이면 근무 여부와 무관하게
+ *    소정근로시간(일 8시간 한도) × 현재 시급을 지급
+ *    - 쉰 날: 이 유급분만 지급
+ *    - 근무한 날: 근로임금(1.0) + 휴일가산(0.5) + 유급분(1.0) = 통상 2.5배
+ *    - 5인 미만 사업장은 근로자의 날만 해당 (가산은 없고 유급분·근로임금만)
+ *
  * 단순화한 부분:
  * - 조회 구간이 주 중간을 자르면 그 주는 잘린 부분만으로 집계된다
  *   (정확한 정산은 주 시작 요일에 맞춘 구간으로 조회할 것)
  * - 휴일 판정은 기록의 workDate 기준 (자정 넘김 근무의 익일 유급휴일 분리 없음)
+ * - 유급휴일수당의 시급은 현재 정책 시급 사용 (미근무일은 스냅샷이 없음),
+ *   소정근로시간은 스케줄 전체 길이 사용 (스케줄에 휴게 정보 없음)
  * - 직원별 약정 주휴일(요일) 근무의 휴일 가산은 미구현 (주휴일 지정 데이터 없음)
- * - 유급휴일에 쉰 날의 유급휴일수당(미근무 유급분)은 미구현
  */
 public class PayrollCalculator {
 
@@ -63,6 +71,7 @@ public class PayrollCalculator {
             long overtimeAllowance,
             long nightAllowance,
             long holidayAllowance,
+            long holidayLeavePay,
             long totalPay
     ) {}
 
@@ -71,13 +80,17 @@ public class PayrollCalculator {
         return Math.round(record.getActualWorkMinutes() * record.getAppliedHourlyWage() / 60.0);
     }
 
-    /** 퇴근 완료된 기록들과 스케줄(개근 판정용)로 한 직원의 급여를 계산한다 */
+    /**
+     * 퇴근 완료된 기록들과 스케줄(개근 판정·유급휴일수당용)로 한 직원의 급여를 계산한다.
+     * @param currentHourlyWage 직원의 현재 정책 시급 (유급휴일수당용 - 미근무일은 스냅샷이 없음)
+     */
     public static Result calculate(
             List<WorkRecord> completedRecords,
             List<Schedule> schedules,
             int weekStartDay,
             boolean weeklyAllowanceIncluded,
-            boolean fiveOrMoreEmployees
+            boolean fiveOrMoreEmployees,
+            int currentHourlyWage
     ) {
         int totalNetMinutes = 0;
         long basePay = 0;
@@ -126,6 +139,23 @@ public class PayrollCalculator {
             scheduledDaysByWeek
                     .computeIfAbsent(weekStart, key -> new HashSet<>())
                     .add(schedule.getWorkDate());
+        }
+
+        // 유급휴일수당: 유급휴일이 소정근로일이면 근무 여부와 무관하게
+        // 소정근로시간(일 8시간 한도) × 현재 시급 지급
+        long holidayLeavePay = 0;
+        Map<LocalDate, Integer> holidayScheduledMinutes = new HashMap<>();
+        for (Schedule schedule : schedules) {
+            if (!KoreanHolidayCalendar.isPaidHoliday(schedule.getWorkDate(), fiveOrMoreEmployees)) {
+                continue;
+            }
+            int scheduled = (int) Duration.between(schedule.getStartTime(), schedule.getEndTime()).toMinutes();
+            holidayScheduledMinutes.merge(schedule.getWorkDate(), scheduled, Integer::sum);
+        }
+        for (int scheduled : holidayScheduledMinutes.values()) {
+            holidayLeavePay += Math.round(
+                    Math.min(scheduled, DAILY_STANDARD_MINUTES) / 60.0 * currentHourlyWage
+            );
         }
 
         // 휴일근로 가산 (제56조 2항, 5인 이상만): 8시간 이내 50%, 초과분 100%
@@ -214,10 +244,11 @@ public class PayrollCalculator {
             }
         }
 
-        long totalPay = basePay + weeklyAllowance + overtimeAllowance + nightAllowance + holidayAllowance;
+        long totalPay = basePay + weeklyAllowance + overtimeAllowance
+                + nightAllowance + holidayAllowance + holidayLeavePay;
 
         return new Result(totalNetMinutes, basePay, weeklyAllowance,
-                overtimeAllowance, nightAllowance, holidayAllowance, totalPay);
+                overtimeAllowance, nightAllowance, holidayAllowance, holidayLeavePay, totalPay);
     }
 
     /** 기록의 야간(22:00~06:00) 실근로 분 - 휴게 구간 제외 */

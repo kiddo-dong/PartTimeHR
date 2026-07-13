@@ -39,10 +39,10 @@ class PayrollCalculatorTest {
                 .build();
     }
 
-    // calculateWeekly=true → 주휴 별도 계산 (시급 포함 계약이 아님)
+    // calculateWeekly=true → 주휴 별도 계산 (시급 포함 계약이 아님), 현재 시급 10,000원 가정
     private PayrollCalculator.Result calc(List<WorkRecord> records, List<Schedule> schedules,
                                           boolean calculateWeekly, boolean fiveOrMore) {
-        return PayrollCalculator.calculate(records, schedules, MONDAY, !calculateWeekly, fiveOrMore);
+        return PayrollCalculator.calculate(records, schedules, MONDAY, !calculateWeekly, fiveOrMore, 10000);
     }
 
     @Test
@@ -230,6 +230,48 @@ class PayrollCalculatorTest {
 
         // 20시간 + 개근(한글날 제외) → 주휴수당 지급
         assertThat(result.weeklyAllowance()).isEqualTo(40000);
+    }
+
+    @Test
+    void 유급휴일에_스케줄이_있고_쉬면_유급휴일수당이_지급된다() {
+        // 한글날(2026-10-09) 9~18시 스케줄, 근무 기록 없음 (쉼)
+        LocalDate hangulDay = LocalDate.of(2026, 10, 9);
+        List<Schedule> schedules = List.of(schedule(hangulDay));
+
+        PayrollCalculator.Result result = calc(List.of(), schedules, true, true);
+
+        // 소정 9시간 → 8시간 한도 × 10,000원 = 80,000원 (기본급 없이 유급분만)
+        assertThat(result.basePay()).isEqualTo(0);
+        assertThat(result.holidayLeavePay()).isEqualTo(80000);
+        assertThat(result.totalPay()).isEqualTo(80000);
+    }
+
+    @Test
+    void 유급휴일에_스케줄대로_근무하면_통상_2_5배가_된다() {
+        // 한글날 스케줄 + 8시간 근무: 근로임금(1.0) + 휴일가산(0.5) + 유급분(1.0)
+        LocalDate hangulDay = LocalDate.of(2026, 10, 9);
+        List<WorkRecord> records = List.of(record(hangulDay, 480, 10000));
+        List<Schedule> schedules = List.of(schedule(hangulDay));
+
+        PayrollCalculator.Result result = calc(records, schedules, false, true);
+
+        assertThat(result.basePay()).isEqualTo(80000);          // 1.0
+        assertThat(result.holidayAllowance()).isEqualTo(40000); // 0.5
+        assertThat(result.holidayLeavePay()).isEqualTo(80000);  // 1.0
+        assertThat(result.totalPay()).isEqualTo(200000);        // 2.5배
+    }
+
+    @Test
+    void 상시_5인_미만은_근로자의_날만_유급휴일수당_대상이다() {
+        // 근로자의 날(2026-05-01) 스케줄 + 쉼 → 유급분 지급
+        List<Schedule> laborDay = List.of(schedule(LocalDate.of(2026, 5, 1)));
+        PayrollCalculator.Result withLaborDay = calc(List.of(), laborDay, true, false);
+        assertThat(withLaborDay.holidayLeavePay()).isEqualTo(80000);
+
+        // 한글날 스케줄 + 쉼 → 5인 미만은 공휴일 유급 의무 없음
+        List<Schedule> hangulDay = List.of(schedule(LocalDate.of(2026, 10, 9)));
+        PayrollCalculator.Result withPublicHoliday = calc(List.of(), hangulDay, true, false);
+        assertThat(withPublicHoliday.holidayLeavePay()).isEqualTo(0);
     }
 
     @Test

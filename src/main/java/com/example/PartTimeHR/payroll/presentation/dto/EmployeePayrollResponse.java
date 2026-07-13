@@ -16,5 +16,6 @@ public class EmployeePayrollResponse {
     private long overtimeAllowance;   // 연장근로 가산 (5인 이상 사업장)
     private long nightAllowance;      // 야간근로 가산 (5인 이상 사업장)
     private long holidayAllowance;    // 휴일근로 가산 (공휴일·근로자의 날, 5인 이상)
+    private long holidayLeavePay;     // 유급휴일수당 (휴일에 스케줄이 있으면 근무 여부 무관 지급)
     private long totalPay;            // 합계
 }
