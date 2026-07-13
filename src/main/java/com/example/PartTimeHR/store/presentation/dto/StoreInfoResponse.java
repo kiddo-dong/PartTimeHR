@@ -13,7 +13,7 @@ public class StoreInfoResponse {
     private String storePhone;
     private String storeAddress;
     private Integer weekStartDay;
-    private Boolean weeklyPayApplicable;
+    private Boolean weeklyAllowanceIncluded;
     private Boolean fiveOrMoreEmployees;
     private LocalDateTime createdAt;
 }

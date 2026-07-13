@@ -204,7 +204,6 @@ class AttendanceServiceTest {
                 .id(storeId)
                 .name("Store")
                 .weekStartDay(1)
-                .weeklyPayApplicable(false)
                 .build();
     }
 

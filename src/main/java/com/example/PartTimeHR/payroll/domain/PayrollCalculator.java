@@ -20,11 +20,13 @@ import java.util.Set;
  *
  * 1. 기본급: 기록별 실근무 분 × 당시 시급 스냅샷 (원 단위 반올림)
  *
- * 2. 주휴수당 (제55조, 사업장 규모 무관 적용):
+ * 2. 주휴수당 (제55조, 사업장 규모 무관·지급 의무):
  *    한 주(매장의 주 시작 요일 기준) 실근무 15시간 이상 + 개근이면
  *    min(주 실근무시간, 40) / 40 × 8시간 × 그 주 평균 시급
  *    - 개근: 그 주에 스케줄(소정근로일)이 있는 날마다 근무 기록이 존재
  *    - 스케줄을 쓰지 않는 매장(그 주 스케줄 0건)은 시간 기준만 적용
+ *    - 단, "주휴 포함 시급" 계약 매장(weeklyAllowanceIncluded)은 시급에
+ *      이미 반영돼 있으므로 별도 계산하지 않는다 (지급 여부의 선택이 아님)
  *
  * 3. 연장근로 가산 (제56조, 상시 5인 이상 사업장만):
  *    1일 8시간 초과분 + 주 40시간 초과 중 일별로 잡히지 않은 추가분 × 시급 × 50%
@@ -65,7 +67,7 @@ public class PayrollCalculator {
             List<WorkRecord> completedRecords,
             List<Schedule> schedules,
             int weekStartDay,
-            boolean weeklyPayApplicable,
+            boolean weeklyAllowanceIncluded,
             boolean fiveOrMoreEmployees
     ) {
         int totalNetMinutes = 0;
@@ -113,9 +115,9 @@ public class PayrollCalculator {
                     .add(schedule.getWorkDate());
         }
 
-        // 주휴수당
+        // 주휴수당 (시급 포함 계약이 아니면 별도 계산 - 법정 기본)
         long weeklyAllowance = 0;
-        if (weeklyPayApplicable) {
+        if (!weeklyAllowanceIncluded) {
             for (Map.Entry<LocalDate, Integer> week : weekMinutes.entrySet()) {
                 int minutes = week.getValue();
                 if (minutes < WEEKLY_ALLOWANCE_MIN_MINUTES) {

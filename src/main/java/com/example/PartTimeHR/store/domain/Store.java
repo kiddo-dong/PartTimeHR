@@ -28,8 +28,17 @@ public class Store {
     private String address;
     @Column(name = "week_start_day", nullable = false)
     private Integer weekStartDay; // 주 시작일
-    @Column(name = "weekly_pay_applicable", nullable = false)
-    private Boolean weeklyPayApplicable; // 주휴수당 적용 여부
+
+    /**
+     * 주휴수당이 시급에 포함된 계약인지 여부.
+     * 주휴수당(근로기준법 제55조)은 요건 충족 시 지급 의무라 끌 수 있는 옵션이 아니다.
+     * - false(기본): 법정 기본 - 주휴수당을 별도 계산해 지급
+     * - true: "주휴 포함 시급" 계약 - 별도 계산하지 않음
+     *   (이 경우 시급은 최저임금 × 1.2 이상이어야 함 - PayPolicyService에서 검증)
+     */
+    @Builder.Default
+    @Column(name = "weekly_allowance_included", nullable = false)
+    private Boolean weeklyAllowanceIncluded = false;
 
     // 상시 근로자 5인 이상 여부 - 연장/야간 가산수당(근로기준법 제56조)은
     // 5인 이상 사업장에만 적용된다 (주휴수당은 인원과 무관하게 적용)
@@ -72,14 +81,14 @@ public class Store {
             String phone,
             String address,
             Integer weekStartDay,
-            Boolean weeklyPayApplicable,
+            Boolean weeklyAllowanceIncluded,
             Boolean fiveOrMoreEmployees
     ) {
         if (name != null) this.name = name;
         if (phone != null) this.phone = phone;
         if (address != null) this.address = address;
         if (weekStartDay != null) this.weekStartDay = weekStartDay;
-        if (weeklyPayApplicable != null) this.weeklyPayApplicable = weeklyPayApplicable;
+        if (weeklyAllowanceIncluded != null) this.weeklyAllowanceIncluded = weeklyAllowanceIncluded;
         if (fiveOrMoreEmployees != null) this.fiveOrMoreEmployees = fiveOrMoreEmployees;
     }
 }

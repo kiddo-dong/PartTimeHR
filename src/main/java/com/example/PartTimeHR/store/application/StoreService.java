@@ -1,6 +1,7 @@
 package com.example.PartTimeHR.store.application;
 
 import com.example.PartTimeHR.employee.domain.EmployeeRepository;
+import com.example.PartTimeHR.global.config.AppProperties;
 import com.example.PartTimeHR.employer.domain.Employer;
 import com.example.PartTimeHR.employer.domain.EmployerNotFoundException;
 import com.example.PartTimeHR.employer.domain.EmployerRepository;
@@ -27,6 +28,7 @@ public class StoreService {
     private final StoreMapper storeMapper;
     private final StoreAccessService storeAccessService;
     private final PayPolicyRepository payPolicyRepository;
+    private final AppProperties appProperties;
 
     // 새 매장 생성
     @Transactional
@@ -42,16 +44,21 @@ public class StoreService {
                 .phone(request.getStorePhone())
                 .address(request.getStoreAddress())
                 .weekStartDay(request.getWeekStartDay())
-                .weeklyPayApplicable(request.getWeeklyPayApplicable())
+                .weeklyAllowanceIncluded(Boolean.TRUE.equals(request.getWeeklyAllowanceIncluded()))
                 .fiveOrMoreEmployees(Boolean.TRUE.equals(request.getFiveOrMoreEmployees()))
                 .employer(employer)
                 .build();
         storeRepository.save(store);
 
+        // 기본 정책 - 주휴 포함 계약 매장은 최저임금 × 1.2가 실질 최저
+        int defaultWage = Boolean.TRUE.equals(store.getWeeklyAllowanceIncluded())
+                ? (int) Math.ceil(appProperties.getMinimumWage() * 1.2)
+                : appProperties.getMinimumWage();
+
         PayPolicy defaultPolicy = PayPolicy.builder()
                 .store(store)
                 .jobTitle("알바생")
-                .hourlyWage(10320)
+                .hourlyWage(defaultWage)
                 .isDefault(true)
                 .active(true)
                 .build();
@@ -72,7 +79,7 @@ public class StoreService {
                 request.getStorePhone(),
                 request.getStoreAddress(),
                 request.getWeekStartDay(),
-                request.getWeeklyPayApplicable(),
+                request.getWeeklyAllowanceIncluded(),
                 request.getFiveOrMoreEmployees()
         );
 

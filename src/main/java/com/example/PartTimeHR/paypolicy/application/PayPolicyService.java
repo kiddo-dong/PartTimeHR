@@ -27,11 +27,32 @@ public class PayPolicyService {
     private final PayPolicyMapper payPolicyMapper;
     private final AppProperties appProperties;
 
-    // 최저임금(근로기준법·최저임금법) 미달 시급 차단
-    private void validateMinimumWage(Integer hourlyWage) {
-        if (hourlyWage != null && hourlyWage < appProperties.getMinimumWage()) {
+    /**
+     * 최저임금(근로기준법·최저임금법) 미달 시급 차단.
+     * "주휴 포함 시급" 계약 매장은 주휴수당을 별도 지급하지 않으므로
+     * 시급이 최저임금 × 1.2(주휴 환산 근사치) 이상이어야 실질 최저임금을 지킨다.
+     */
+    private void validateMinimumWage(Integer hourlyWage, Store store) {
+        if (hourlyWage == null) {
+            return;
+        }
+
+        int minimum = appProperties.getMinimumWage();
+
+        if (Boolean.TRUE.equals(store.getWeeklyAllowanceIncluded())) {
+            int includedMinimum = (int) Math.ceil(minimum * 1.2);
+            if (hourlyWage < includedMinimum) {
+                throw new IllegalArgumentException(
+                        "주휴 포함 시급 계약 매장은 시급이 최저임금의 1.2배("
+                                + includedMinimum + "원) 이상이어야 합니다."
+                );
+            }
+            return;
+        }
+
+        if (hourlyWage < minimum) {
             throw new IllegalArgumentException(
-                    "시급은 최저임금(" + appProperties.getMinimumWage() + "원) 이상이어야 합니다."
+                    "시급은 최저임금(" + minimum + "원) 이상이어야 합니다."
             );
         }
     }
@@ -47,10 +68,10 @@ public class PayPolicyService {
     @Transactional
     public void createPayPolicy(Long storeId, Long employerId, CreatePayPolicyRequest request) {
 
-        validateMinimumWage(request.getHourlyWage());
-
         // 내 매장인지 확인 (매장 조회까지 함께 처리)
         Store store = storeAccessService.getMyStore(storeId, employerId);
+
+        validateMinimumWage(request.getHourlyWage(), store);
 
         PayPolicy policy = PayPolicy.builder()
                 .store(store)
@@ -76,7 +97,7 @@ public class PayPolicyService {
             throw new StoreAccessDeniedException();
         }
 
-        validateMinimumWage(request.getHourlyWage());
+        validateMinimumWage(request.getHourlyWage(), store);
 
         // MapStruct는 setter 없는 엔티티에 빈 메서드를 생성해 no-op이었음 → 도메인 메서드 사용
         policy.update(request.getJobTitle(), request.getHourlyWage());

@@ -70,17 +70,21 @@ public class EmployerAuthService {
                 .phone(request.getStorePhone())
                 .address(request.getStoreAddress())
                 .weekStartDay(request.getWeekStartDay())
-                .weeklyPayApplicable(request.getWeeklyPayApplicable())
+                .weeklyAllowanceIncluded(Boolean.TRUE.equals(request.getWeeklyAllowanceIncluded()))
                 .fiveOrMoreEmployees(Boolean.TRUE.equals(request.getFiveOrMoreEmployees()))
                 .employer(employer)
                 .build();
         storeRepository.save(store);
 
-        // 3. 기본 PayPolicy 생성 (findStore 기준)
+        // 3. 기본 PayPolicy 생성 - 주휴 포함 계약 매장은 최저임금 × 1.2가 실질 최저
+        int defaultWage = Boolean.TRUE.equals(store.getWeeklyAllowanceIncluded())
+                ? (int) Math.ceil(appProperties.getMinimumWage() * 1.2)
+                : appProperties.getMinimumWage();
+
         PayPolicy defaultPolicy = PayPolicy.builder()
                 .store(store)
                 .jobTitle("알바생")
-                .hourlyWage(10320)
+                .hourlyWage(defaultWage)
                 .isDefault(true)
                 .active(true)
                 .build();

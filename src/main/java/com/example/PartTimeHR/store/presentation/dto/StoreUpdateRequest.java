@@ -19,7 +19,7 @@ public class StoreUpdateRequest {
     @Max(value = 7, message = "주 시작 요일은 1(월)~7(일)입니다.")
     private Integer weekStartDay;
 
-    private Boolean weeklyPayApplicable;
+    private Boolean weeklyAllowanceIncluded;
 
     private Boolean fiveOrMoreEmployees;
 }

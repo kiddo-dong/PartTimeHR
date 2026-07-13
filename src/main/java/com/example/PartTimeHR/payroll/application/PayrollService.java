@@ -70,7 +70,7 @@ public class PayrollService {
                     employeeRecords,
                     schedulesByEmployee.getOrDefault(employee.getId(), List.of()),
                     store.getWeekStartDay(),
-                    store.getWeeklyPayApplicable(),
+                    store.getWeeklyAllowanceIncluded(),
                     store.getFiveOrMoreEmployees()
             );
 
@@ -96,6 +96,7 @@ public class PayrollService {
                 .storeId(storeId)
                 .from(from)
                 .to(to)
+                .weeklyAllowanceIncluded(Boolean.TRUE.equals(store.getWeeklyAllowanceIncluded()))
                 .totalPay(totalPay)
                 .employees(employees)
                 .build();
@@ -134,7 +135,7 @@ public class PayrollService {
                 records,
                 schedules,
                 store.getWeekStartDay(),
-                store.getWeeklyPayApplicable(),
+                store.getWeeklyAllowanceIncluded(),
                 store.getFiveOrMoreEmployees()
         );
 
@@ -155,6 +156,7 @@ public class PayrollService {
                 .employeeName(employee.getName())
                 .from(from)
                 .to(to)
+                .weeklyAllowanceIncluded(Boolean.TRUE.equals(store.getWeeklyAllowanceIncluded()))
                 .recordCount(records.size())
                 .totalNetMinutes(result.totalNetMinutes())
                 .basePay(result.basePay())

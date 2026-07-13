@@ -39,9 +39,10 @@ class PayrollCalculatorTest {
                 .build();
     }
 
+    // calculateWeekly=true → 주휴 별도 계산 (시급 포함 계약이 아님)
     private PayrollCalculator.Result calc(List<WorkRecord> records, List<Schedule> schedules,
-                                          boolean weeklyPay, boolean fiveOrMore) {
-        return PayrollCalculator.calculate(records, schedules, MONDAY, weeklyPay, fiveOrMore);
+                                          boolean calculateWeekly, boolean fiveOrMore) {
+        return PayrollCalculator.calculate(records, schedules, MONDAY, !calculateWeekly, fiveOrMore);
     }
 
     @Test
