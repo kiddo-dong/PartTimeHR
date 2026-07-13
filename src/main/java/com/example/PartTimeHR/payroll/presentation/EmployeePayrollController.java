@@ -2,6 +2,7 @@ package com.example.PartTimeHR.payroll.presentation;
 
 import com.example.PartTimeHR.payroll.application.PayrollService;
 import com.example.PartTimeHR.payroll.presentation.dto.EmployeePayrollDetailResponse;
+import com.example.PartTimeHR.payroll.presentation.dto.SeverancePayResponse;
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -32,6 +33,17 @@ public class EmployeePayrollController {
     ) {
         return ResponseEntity.ok(
                 payrollService.getMyPayroll(userDetails.getId(), from, to)
+        );
+    }
+
+    // 본인 퇴직금 추정
+    @GetMapping("/severance")
+    public ResponseEntity<SeverancePayResponse> getMySeverancePay(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf
+    ) {
+        return ResponseEntity.ok(
+                payrollService.getMySeverancePay(userDetails.getId(), asOf)
         );
     }
 }

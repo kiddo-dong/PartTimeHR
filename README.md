@@ -166,6 +166,7 @@ PartTimeHR/
 presentation (Controller, DTO)
     ↓
 application (Service, Mapper - 유스케이스, 트랜잭션 경계)
+
     ↓
 domain (Entity, Repository, 도메인 예외)
     ↓

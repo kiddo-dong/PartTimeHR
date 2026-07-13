@@ -7,6 +7,7 @@ import com.example.PartTimeHR.payroll.presentation.dto.EmployeePayrollDetailResp
 import com.example.PartTimeHR.payroll.presentation.dto.EmployeePayrollResponse;
 import com.example.PartTimeHR.payroll.presentation.dto.PayrollRecordResponse;
 import com.example.PartTimeHR.payroll.presentation.dto.PayrollSummaryResponse;
+import com.example.PartTimeHR.payroll.presentation.dto.SeverancePayResponse;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.schedule.domain.ScheduleRepository;
 import com.example.PartTimeHR.store.application.StoreAccessService;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -177,6 +179,94 @@ public class PayrollService {
                 .holidayLeavePay(result.holidayLeavePay())
                 .totalPay(result.totalPay())
                 .records(recordResponses)
+                .build();
+    }
+
+    // 퇴직금 추정 (사장)
+    public SeverancePayResponse getSeverancePay(Long employerId, Long storeId, Long employeeId, LocalDate asOf) {
+        Store store = storeAccessService.getMyStore(storeId, employerId);
+        Employee employee = employeeAccessService.getEmployee(employeeId, store);
+
+        return buildSeverancePay(employee, store, asOf != null ? asOf : LocalDate.now());
+    }
+
+    // 퇴직금 추정 (본인)
+    public SeverancePayResponse getMySeverancePay(Long employeeId, LocalDate asOf) {
+        Employee employee = employeeAccessService.getEmployeeOrThrow(employeeId);
+
+        return buildSeverancePay(employee, employee.getStore(), asOf != null ? asOf : LocalDate.now());
+    }
+
+    /**
+     * 퇴직금 추정 = 1일 평균임금 × 30 × (재직일수 / 365)
+     * - 평균임금: 기준일 이전 3개월 임금총액(수당 포함) ÷ 총 달력일수
+     * - 알바처럼 근무일이 적으면 평균임금이 낮게 나오므로,
+     *   통상임금 추정치(시급 × 1일 평균 실근무시간)보다 낮으면 그것으로 보정 (제2조 2항)
+     * - 자격: 재직 1년 이상 + 최근 4주 평균 주 15시간 이상
+     */
+    private SeverancePayResponse buildSeverancePay(Employee employee, Store store, LocalDate asOf) {
+        SeverancePayResponse.SeverancePayResponseBuilder builder = SeverancePayResponse.builder()
+                .employeeId(employee.getId())
+                .employeeName(employee.getName())
+                .hiredAt(employee.getHiredAt())
+                .asOf(asOf);
+
+        if (employee.getHiredAt() == null) {
+            return builder.eligible(false).ineligibleReason("입사일이 등록되지 않았습니다.").build();
+        }
+
+        long serviceDays = ChronoUnit.DAYS.between(employee.getHiredAt(), asOf);
+        builder.serviceDays(serviceDays);
+
+        if (serviceDays < 365) {
+            return builder.eligible(false).ineligibleReason("재직 기간이 1년 미만입니다.").build();
+        }
+
+        // 최근 4주 평균 주 15시간 검사
+        List<WorkRecord> lastFourWeeks = completedOnly(
+                workRecordRepository.findAllByEmployeeAndWorkDateBetween(employee, asOf.minusDays(28), asOf.minusDays(1))
+        );
+        long fourWeekMinutes = lastFourWeeks.stream()
+                .mapToLong(WorkRecord::getActualWorkMinutes)
+                .sum();
+        if (fourWeekMinutes / 4 < 15 * 60) {
+            return builder.eligible(false)
+                    .ineligibleReason("최근 4주 평균 주 소정근로시간이 15시간 미만입니다.").build();
+        }
+
+        // 평균임금: 기준일 이전 3개월
+        LocalDate from = asOf.minusMonths(3);
+        LocalDate to = asOf.minusDays(1);
+        long periodDays = ChronoUnit.DAYS.between(from, asOf);
+
+        List<WorkRecord> records = completedOnly(
+                workRecordRepository.findAllByEmployeeAndWorkDateBetween(employee, from, to)
+        );
+        List<Schedule> schedules = scheduleRepository.findByEmployeeAndWorkDateBetween(employee, from, to);
+
+        PayrollCalculator.Result pay = PayrollCalculator.calculate(
+                records, schedules, List.of(), calcParams(store, employee)
+        );
+
+        long averageDailyWage = Math.round((double) pay.totalPay() / periodDays);
+
+        // 통상임금 보정: 시급 × 1일 평균 실근무시간(8시간 한도)
+        if (!records.isEmpty()) {
+            double avgDailyHours = Math.min(
+                    pay.totalNetMinutes() / 60.0 / records.size(), 8.0
+            );
+            long ordinaryDailyWage = Math.round(
+                    avgDailyHours * employee.getPayPolicy().getHourlyWage()
+            );
+            averageDailyWage = Math.max(averageDailyWage, ordinaryDailyWage);
+        }
+
+        long estimated = Math.round(averageDailyWage * 30.0 * serviceDays / 365.0);
+
+        return builder
+                .eligible(true)
+                .averageDailyWage(averageDailyWage)
+                .estimatedAmount(estimated)
                 .build();
     }
 
