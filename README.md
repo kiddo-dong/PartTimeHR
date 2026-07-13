@@ -209,17 +209,18 @@ Database - MySQL 8.0
 
 ### Schedule (근무 예정)
 ```
-- id, store(N:1), employee(N:1), workDate
-- startTime/endTime, confirmed, createdAt/updatedAt
+- id, store(N:1), employee(N:1)
+- startTime/endTime, workDate(startTime에서 유도), createdAt/updatedAt
 ```
 
-### WorkRecord (근태 기록)
+### WorkRecord (근태 기록) + WorkBreak (휴게, 1:N)
 ```
-- id, employee(N:1), workDate, clockInTime/clockOutTime
-- breakStartTime/breakEndTime(마지막 휴게), totalBreakMinutes(누적)
-- totalWorkedMinutes/netWorkedMinutes(퇴근 시 확정)
-- appliedHourlyWage/appliedJobTitle(당시 정책 스냅샷)
-- status(IN_PROGRESS/ON_BREAK/COMPLETED/ABSENT), memo
+WorkRecord: id, employee(N:1), workDate, clockInTime/clockOutTime
+            appliedHourlyWage/appliedJobTitle(당시 정책 스냅샷), memo
+WorkBreak:  id, workRecord(N:1), startTime/endTime(null=진행 중)
+
+저장하는 것은 사실(시각)뿐 - status(IN_PROGRESS/ON_BREAK/COMPLETED),
+총/휴게/실근무 분은 전부 파생값 (불일치 원천 차단)
 ```
 
 ### RefreshToken / EmailVerification / PasswordResetToken
