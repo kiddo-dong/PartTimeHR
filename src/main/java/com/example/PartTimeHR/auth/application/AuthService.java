@@ -1,7 +1,7 @@
 package com.example.PartTimeHR.auth.application;
 
-import com.example.PartTimeHR.auth.domain.Account;
-import com.example.PartTimeHR.auth.domain.AccountRepository;
+import com.example.PartTimeHR.auth.domain.User;
+import com.example.PartTimeHR.auth.domain.UserRepository;
 import com.example.PartTimeHR.auth.domain.RefreshToken;
 import com.example.PartTimeHR.auth.domain.RefreshTokenRepository;
 import com.example.PartTimeHR.auth.presentation.dto.LoginRequest;
@@ -19,30 +19,30 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AuthService {
 
-    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
     public LoginResponse login(LoginRequest request) {
 
-        Account account = accountRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(InvalidCredentialsException::new);
 
-        if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException();
         }
 
-        if (!account.isEmailVerified()) {
+        if (!user.isEmailVerified()) {
             throw new EmailNotVerifiedException();
         }
 
-        String accessToken = createAccessToken(account);
+        String accessToken = createAccessToken(user);
 
         // 재로그인 시 기존 토큰 폐기 (계정당 refresh 토큰 1개)
-        refreshTokenRepository.deleteByAccountId(account.getId());
+        refreshTokenRepository.deleteByUserId(user.getId());
 
-        RefreshToken refreshToken = RefreshToken.create(account.getId());
+        RefreshToken refreshToken = RefreshToken.create(user.getId());
         refreshTokenRepository.save(refreshToken);
 
         return new LoginResponse(accessToken, refreshToken.getToken());
@@ -62,14 +62,14 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        Account account = accountRepository.findById(refreshToken.getAccountId())
+        User user = userRepository.findById(refreshToken.getUserId())
                 .orElseThrow(InvalidCredentialsException::new);
 
-        if (!account.isEmailVerified()) {
+        if (!user.isEmailVerified()) {
             throw new EmailNotVerifiedException();
         }
 
-        return new LoginResponse(createAccessToken(account), refreshToken.getToken());
+        return new LoginResponse(createAccessToken(user), refreshToken.getToken());
     }
 
     /**
@@ -80,11 +80,11 @@ public class AuthService {
         refreshTokenRepository.deleteByToken(refreshTokenValue);
     }
 
-    private String createAccessToken(Account account) {
+    private String createAccessToken(User user) {
         return jwtProvider.createAccessToken(
-                account.getEmail(),
-                account.getId(),
-                account.getRole().name()
+                user.getEmail(),
+                user.getId(),
+                user.getRole().name()
         );
     }
 }

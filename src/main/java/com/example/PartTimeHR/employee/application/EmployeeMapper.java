@@ -10,7 +10,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface EmployeeMapper {
 
-    @Mapping(source = "account.email", target = "email")
+    @Mapping(source = "user.email", target = "email")
     @Mapping(source = "store.id", target = "storeId")
     @Mapping(source = "store.name", target = "storeName")
     @Mapping(source = "payPolicy.jobTitle", target = "jobTitle")

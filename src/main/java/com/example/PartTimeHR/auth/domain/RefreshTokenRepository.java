@@ -11,5 +11,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     void deleteByToken(String token);
 
     // 재로그인 시 기존 토큰 폐기 (계정당 refresh 토큰 1개)
-    void deleteByAccountId(Long accountId);
+    void deleteByUserId(Long userId);
 }

@@ -23,18 +23,18 @@ public class RefreshToken {
     @Column(nullable = false, unique = true)
     private String token;
 
-    // Account.id 참조 (Employer/Employee가 Account와 PK를 공유하므로
+    // User.id 참조 (Employer/Employee가 User와 PK를 공유하므로
     // 이 값이 곧 Employer.id / Employee.id와 같다)
     @Column(nullable = false)
-    private Long accountId;
+    private Long userId;
 
     @Column(nullable = false)
     private LocalDateTime expiredAt;
 
-    public static RefreshToken create(Long accountId) {
+    public static RefreshToken create(Long userId) {
         RefreshToken t = new RefreshToken();
         t.token = UUID.randomUUID().toString();
-        t.accountId = accountId;
+        t.userId = userId;
         t.expiredAt = LocalDateTime.now().plusDays(VALIDITY_DAYS);
         return t;
     }

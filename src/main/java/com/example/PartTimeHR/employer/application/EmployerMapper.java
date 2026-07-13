@@ -8,6 +8,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface EmployerMapper {
 
-    @Mapping(source = "account.email", target = "email")
+    @Mapping(source = "user.email", target = "email")
     EmployerInfoResponse toInfoResponse(Employer employer);
 }

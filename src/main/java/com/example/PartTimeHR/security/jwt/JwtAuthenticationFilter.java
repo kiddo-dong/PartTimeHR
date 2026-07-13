@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.security.jwt;
 
-import com.example.PartTimeHR.auth.domain.AccountRepository;
+import com.example.PartTimeHR.auth.domain.UserRepository;
 import com.example.PartTimeHR.security.customuser.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -21,7 +21,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
-    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -57,9 +57,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Claims claims = jwtProvider.getClaims(token);
             String email = claims.getSubject();
 
-            // Employer/Employee가 Account와 PK를 공유하므로, 로그인 시점엔
-            // Account만 조회하면 충분하다 (role별로 다른 테이블을 뒤질 필요가 없다)
-            CustomUserDetails userDetails = accountRepository.findByEmail(email)
+            // Employer/Employee가 User와 PK를 공유하므로, 로그인 시점엔
+            // User만 조회하면 충분하다 (role별로 다른 테이블을 뒤질 필요가 없다)
+            CustomUserDetails userDetails = userRepository.findByEmail(email)
                     .map(CustomUserDetails::new)
                     .orElse(null);
 

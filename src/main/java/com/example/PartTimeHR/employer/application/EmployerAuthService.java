@@ -1,7 +1,7 @@
 package com.example.PartTimeHR.employer.application;
 
-import com.example.PartTimeHR.auth.domain.Account;
-import com.example.PartTimeHR.auth.domain.AccountRepository;
+import com.example.PartTimeHR.auth.domain.User;
+import com.example.PartTimeHR.auth.domain.UserRepository;
 import com.example.PartTimeHR.global.config.AppProperties;
 import com.example.PartTimeHR.mail.domain.EmailVerification;
 import com.example.PartTimeHR.mail.domain.PasswordResetToken;
@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EmployerAuthService {
 
-    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
     private final EmployerRepository employerRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationRepository emailVerificationRepository;
@@ -44,8 +44,8 @@ public class EmployerAuthService {
     @Transactional
     public void signup(EmployerSignupRequest request) {
 
-        // 이메일은 Account에서 전역 유일 (사장/직원 통틀어 로그인이 이메일 하나로 이뤄짐)
-        if (accountRepository.existsByEmail(request.getEmail())) {
+        // 이메일은 User에서 전역 유일 (사장/직원 통틀어 로그인이 이메일 하나로 이뤄짐)
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
@@ -53,18 +53,18 @@ public class EmployerAuthService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 1. Account 생성 (인증용) - Employer보다 먼저 저장해야 PK가 생성돼 공유할 수 있다
-        Account account = Account.create(
+        // 1. User 생성 (인증용) - Employer보다 먼저 저장해야 PK가 생성돼 공유할 수 있다
+        User user = User.create(
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 Role.ROLE_EMPLOYER,
                 false
         );
-        accountRepository.save(account);
+        userRepository.save(user);
 
-        // 2. Employer 생성 (Account와 PK 공유)
+        // 2. Employer 생성 (User와 PK 공유)
         Employer employer = Employer.builder()
-                .account(account)
+                .user(user)
                 .name(request.getName())
                 .phone(request.getPhone())
                 .build();
@@ -101,7 +101,7 @@ public class EmployerAuthService {
         emailVerificationRepository.save(ev);
 
         mailService.sendHtmlEmail(
-                account.getEmail(),
+                user.getEmail(),
                 "이메일 인증",
                 createVerificationEmailHtml(employer.getName(), ev.getToken())
         );
@@ -113,7 +113,7 @@ public class EmployerAuthService {
     public void requestPasswordReset(String email) {
         mailCooldownGuard.checkAndMark(email);
 
-        Employer employer = employerRepository.findByAccount_Email(email)
+        Employer employer = employerRepository.findByUser_Email(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일"));
 
         PasswordResetToken token = PasswordResetToken.create(employer);
@@ -147,13 +147,13 @@ public class EmployerAuthService {
         PasswordResetToken resetToken = findValidToken(token);
 
         Employer employer = resetToken.getEmployer();
-        employer.getAccount().changePassword(passwordEncoder.encode(newPassword));
+        employer.getUser().changePassword(passwordEncoder.encode(newPassword));
 
         // 재사용 방지 (1회용 토큰)
         passwordResetTokenRepository.delete(resetToken);
 
         // 비밀번호가 바뀌면 기존 세션(refresh 토큰) 폐기
-        refreshTokenRepository.deleteByAccountId(employer.getId());
+        refreshTokenRepository.deleteByUserId(employer.getId());
     }
 
     private PasswordResetToken findValidToken(String token) {

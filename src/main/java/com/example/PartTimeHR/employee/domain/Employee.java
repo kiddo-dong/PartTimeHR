@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.employee.domain;
 
-import com.example.PartTimeHR.auth.domain.Account;
+import com.example.PartTimeHR.auth.domain.User;
 import com.example.PartTimeHR.paypolicy.domain.PayPolicy;
 import com.example.PartTimeHR.schedule.domain.Schedule;
 import com.example.PartTimeHR.store.domain.Store;
@@ -13,8 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 // 직원
-// 인증 정보(email/password/role)는 Account가 갖고,
-// Employee는 Account와 PK를 공유한다(@MapsId) — Employee.id == Account.id
+// 인증 정보(email/password/role)는 User가 갖고,
+// Employee는 User와 PK를 공유한다(@MapsId) — Employee.id == User.id
 @Entity
 @Table(name = "employee")
 @Getter
@@ -29,7 +29,7 @@ public class Employee {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @MapsId
     @JoinColumn(name = "id")
-    private Account account;
+    private User user;
 
     @Column(nullable = false, length = 30)
     private String name;

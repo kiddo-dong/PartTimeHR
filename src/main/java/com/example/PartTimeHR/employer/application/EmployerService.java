@@ -41,10 +41,10 @@ public class EmployerService {
                 throw new IllegalArgumentException("비밀번호 확인이 일치하지 않습니다.");
             }
             // 반드시 암호화 후 저장
-            employer.getAccount().changePassword(passwordEncoder.encode(request.getPassword()));
+            employer.getUser().changePassword(passwordEncoder.encode(request.getPassword()));
 
             // 비밀번호가 바뀌면 기존 세션(refresh 토큰) 폐기
-            refreshTokenRepository.deleteByAccountId(employer.getId());
+            refreshTokenRepository.deleteByUserId(employer.getId());
         }
 
         employer.updateBasicInfo(request.getName(), request.getPhone());

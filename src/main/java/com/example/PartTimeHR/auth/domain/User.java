@@ -10,19 +10,19 @@ import java.time.LocalDateTime;
 
 /**
  * 인증 신원 (이메일/비밀번호/역할/이메일 인증 상태).
- * Employer/Employee는 이 Account와 PK를 공유(@MapsId)하고 각자의 도메인
+ * Employer/Employee는 이 User와 PK를 공유(@MapsId)하고 각자의 도메인
  * 데이터(매장 소유/소속, 시급정책 등)만 갖는다. 로그인·이메일 중복 검사가
  * 이 테이블 하나로 통일된다 (예전에는 Employer/Employee 테이블에 이메일이
  * 중복 저장돼 있어 두 테이블을 매번 함께 조회/검사해야 했다).
  */
 @Entity
 @Table(
-        name = "account",
-        uniqueConstraints = @UniqueConstraint(name = "uk_account_email", columnNames = "email")
+        name = "user",
+        uniqueConstraints = @UniqueConstraint(name = "uk_user_email", columnNames = "email")
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Account {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,13 +58,13 @@ public class Account {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public static Account create(String email, String encodedPassword, Role role, boolean emailVerified) {
-        Account account = new Account();
-        account.email = email;
-        account.password = encodedPassword;
-        account.role = role;
-        account.emailVerified = emailVerified;
-        return account;
+    public static User create(String email, String encodedPassword, Role role, boolean emailVerified) {
+        User user = new User();
+        user.email = email;
+        user.password = encodedPassword;
+        user.role = role;
+        user.emailVerified = emailVerified;
+        return user;
     }
 
     // 암호화된 비밀번호만 받는다

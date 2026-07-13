@@ -35,7 +35,7 @@ public class EmailVerification {
     public static EmailVerification create(Employer employer) {
         EmailVerification ev = new EmailVerification();
         ev.employer = employer;
-        ev.email = employer.getAccount().getEmail();
+        ev.email = employer.getUser().getEmail();
         ev.token = UUID.randomUUID().toString();
         ev.expiredAt = LocalDateTime.now().plusMinutes(30);
         return ev;

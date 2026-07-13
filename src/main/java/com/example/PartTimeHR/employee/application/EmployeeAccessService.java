@@ -1,6 +1,6 @@
 package com.example.PartTimeHR.employee.application;
 
-import com.example.PartTimeHR.auth.domain.AccountRepository;
+import com.example.PartTimeHR.auth.domain.UserRepository;
 import com.example.PartTimeHR.employee.domain.Employee;
 import com.example.PartTimeHR.employee.domain.EmployeeAccessDeniedException;
 import com.example.PartTimeHR.employee.domain.EmployeeEmailDuplicatesException;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 public class EmployeeAccessService {
 
     private final EmployeeRepository employeeRepository;
-    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
 
     // 특정 가게에 소속된 직원 단건 접근
     public Employee getEmployee(Long employeeId, Store store) {
@@ -33,11 +33,11 @@ public class EmployeeAccessService {
 
     /**
      * 이메일 사용 가능 여부 검사.
-     * 이메일은 Account에서 전역 unique이고 로그인도 이메일 하나로 이뤄지므로
-     * Account 하나만 검사하면 사장/직원 전체에 대한 중복 검사가 끝난다.
+     * 이메일은 User에서 전역 unique이고 로그인도 이메일 하나로 이뤄지므로
+     * User 하나만 검사하면 사장/직원 전체에 대한 중복 검사가 끝난다.
      */
     public void checkEmailDuplicates(String email) {
-        if (accountRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmail(email)) {
             throw new EmployeeEmailDuplicatesException();
         }
     }
